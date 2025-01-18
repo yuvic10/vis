@@ -13,33 +13,35 @@ products = {
 }
 
 # כותרת ראשית
-st.title("חלופה 1: פאזל שנים דינמי לסל קניות")
+st.title("חלופה 1: שינוי פרופורציות הסל לאורך השנים")
 
 # בחירת מוצרים לסל
-selected_products = st.multiselect("בחר מוצרים לסל", list(products.keys()), default=["Flour"])
+selected_products = st.multiselect("בחר מוצרים להוסיף לסל", list(products.keys()), default=["Flour"])
 
-# וידוא שהמוצרים שנבחרו קיימים בנתונים
+# בדיקה אם נבחרו מוצרים
 if not selected_products:
-    st.error("בחר מוצר אחד לפחות כדי לראות את הפאזל!")
+    st.error("בחר מוצר אחד לפחות כדי לראות את ההשפעה על הסל!")
 else:
-    # חישוב מחירי סל
+    # חישוב מחיר סל
     total_prices = base_prices.copy()
     for product in selected_products:
         total_prices += np.array(products[product], dtype=float)
 
-    # חישוב גודל לכל שנה
+    # התאמת פרופורציות השנים
     max_price = max(total_prices)
     sizes = (total_prices / max_price) * 5000  # התאמת גודל
+    proportions = (total_prices / sum(total_prices)) * 100  # פרופורציה באחוזים
 
     # יצירת גרף
-    fig, ax = plt.subplots(figsize=(10, 6))
-    colors = plt.cm.viridis(total_prices / max_price)  # צבעים בהתאם למחירים
+    fig, ax = plt.subplots(figsize=(12, 6))
+    colors = plt.cm.viridis(total_prices / max_price)  # צבעים משתנים לפי מחירים
     for i, year in enumerate(years):
-        ax.scatter(year, 0, s=sizes[i], color=colors[i], alpha=0.8, label=f"{year}: {total_prices[i]:.2f}₪")
+        ax.scatter(year, 0, s=sizes[i], color=colors[i], alpha=0.8, label=f"{year}: {proportions[i]:.1f}% מהסל")
 
-    # פרטי הגרף
-    ax.set_title("התפלגות מחירים לאורך השנים")
-    ax.set_xlabel("שנים")
-    ax.set_yticks([])
-    ax.legend(loc="upper left", bbox_to_anchor=(1.05, 1), title="שנה ומחיר")
+    # פרטי גרף
+    ax.set_title("השפעת הוספת מוצרים על פרופורציות השנים בסל", fontsize=16)
+    ax.set_xlabel("שנים", fontsize=14)
+    ax.set_yticks([])  # אין צורך בציר Y
+    ax.legend(loc="upper left", bbox_to_anchor=(1.05, 1), title="שנה ואחוז מהסל")
+    ax.grid(axis="x", linestyle="--", alpha=0.7)
     st.pyplot(fig)
