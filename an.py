@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.offsetbox import OffsetImage, AnnotationBbox
 
 # נתוני בסיס
 products = {
@@ -31,7 +32,34 @@ df_selected["Percentage of Wage"] = (df_selected["Total Basket"] / df_products["
 # כותרת
 st.title("Shopping Basket Over the Years")
 
+# פונקציה ליצירת תמונת סל
+def plot_basket(year, total_price):
+    fig, ax = plt.subplots(figsize=(6, 6))
+    ax.set_xlim(0, 10)
+    ax.set_ylim(0, 10)
+    ax.axis('off')
+    
+    # הוספת סל
+    basket_img = plt.imread("basket.png")  # השתמש בתמונה של סל
+    imagebox = OffsetImage(basket_img, zoom=0.5)
+    ab = AnnotationBbox(imagebox, (5, 5), frameon=False)
+    ax.add_artist(ab)
+
+    # הוספת מחיר
+    ax.text(5, 2, f"Price: {total_price} NIS", fontsize=16, ha='center', color='blue')
+    ax.text(5, 1, f"Year: {year}", fontsize=14, ha='center', color='black')
+
+    return fig
+
+# בחירת שנה להצגת הסל
+st.subheader("Basket Visualization")
+selected_year = st.slider("Select a Year:", min_value=years[0], max_value=years[-1], step=1)
+total_price = df_selected.loc[selected_year, "Total Basket"]
+fig = plot_basket(selected_year, total_price)
+st.pyplot(fig)
+
 # גרף קווי להצגת מחיר סל הקניות לאורך השנים
+st.subheader("Basket Price Trend")
 fig, ax = plt.subplots(figsize=(12, 8))
 ax.plot(years, df_selected["Total Basket"], label="Total Basket Price", color="blue", marker="o")
 ax.plot(years, df_products["Minimum Wage"], label="Minimum Wage", color="green", linestyle="--")
