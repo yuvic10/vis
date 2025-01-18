@@ -6,40 +6,62 @@ import matplotlib.pyplot as plt
 data = {
     'Year': [2000, 2005, 2010, 2015, 2020],
     'Minimum Wage': [3000, 3500, 4000, 4500, 5000],
-    'Cost of Living': [2800, 3600, 4200, 4800, 5500]
+    'Fuel Cost': [1000, 1500, 2000, 2500, 3000],
+    'Basic Products': [1200, 1600, 2000, 2500, 3000],
+    'Rent': [800, 1200, 1600, 2000, 2500]
 }
 df = pd.DataFrame(data)
 
-# Calculate the difference (savings or deficit)
-df['Difference (NIS)'] = df['Minimum Wage'] - df['Cost of Living']
+# User input: Adjust proportions of categories
+st.sidebar.header("Adjust Proportions")
+fuel_rate = st.sidebar.slider('Fuel (%)', 0, 100, 30)
+product_rate = st.sidebar.slider('Basic Products (%)', 0, 100, 50)
+rent_rate = st.sidebar.slider('Rent (%)', 0, 100, 20)
 
-# Title of the application
-st.title("Minimum Wage vs. Cost of Living")
+# Recalculate costs based on user input
+df['Adjusted Cost of Living'] = (
+    df['Fuel Cost'] * (fuel_rate / 100) +
+    df['Basic Products'] * (product_rate / 100) +
+    df['Rent'] * (rent_rate / 100)
+)
 
-# Create a line plot to compare minimum wage and cost of living
+# Calculate the difference between minimum wage and cost of living
+df['Difference (NIS)'] = df['Minimum Wage'] - df['Adjusted Cost of Living']
+
+# Line chart with shaded areas
+st.title("Minimum Wage vs. Cost of Living (Interactive)")
+
 fig, ax = plt.subplots()
 ax.plot(df['Year'], df['Minimum Wage'], label='Minimum Wage', color='blue')
-ax.plot(df['Year'], df['Cost of Living'], label='Cost of Living', color='red')
+ax.plot(df['Year'], df['Adjusted Cost of Living'], label='Adjusted Cost of Living', color='red')
 
-# Highlight positive and negative differences
-ax.fill_between(df['Year'], df['Minimum Wage'], df['Cost of Living'], 
-                where=(df['Minimum Wage'] < df['Cost of Living']), color='pink', alpha=0.3, label='Deficit')
-ax.fill_between(df['Year'], df['Minimum Wage'], df['Cost of Living'], 
-                where=(df['Minimum Wage'] >= df['Cost of Living']), color='lightgreen', alpha=0.3, label='Savings')
+# Highlight areas of surplus and deficit
+ax.fill_between(df['Year'], df['Minimum Wage'], df['Adjusted Cost of Living'], 
+                where=(df['Minimum Wage'] >= df['Adjusted Cost of Living']), color='lightgreen', alpha=0.3, label='Surplus')
+ax.fill_between(df['Year'], df['Minimum Wage'], df['Adjusted Cost of Living'], 
+                where=(df['Minimum Wage'] < df['Adjusted Cost of Living']), color='pink', alpha=0.3, label='Deficit')
 
-# Add titles and labels
-ax.set_title("Comparison of Minimum Wage and Cost of Living Over Time")
+ax.set_title("Adjusted Cost of Living vs. Minimum Wage")
 ax.set_xlabel("Year")
 ax.set_ylabel("NIS")
 ax.legend()
 
-# Display the graph
 st.pyplot(fig)
 
-# Display the data as a table
-st.dataframe(df)
+# Allow user to select two years for comparison
+st.subheader("Compare Two Years")
+year_1 = st.selectbox('Select First Year', df['Year'])
+year_2 = st.selectbox('Select Second Year', df['Year'])
 
-# Add a metric widget for year-specific analysis
-year = st.selectbox('Select a Year:', df['Year'])
-selected_year = df[df['Year'] == year]
-st.metric(label=f"Difference in {year}", value=f"{selected_year['Difference (NIS)'].values[0]} NIS")
+# Extract data for the selected years
+year_1_data = df[df['Year'] == year_1].iloc[0]
+year_2_data = df[df['Year'] == year_2].iloc[0]
+
+# Display comparison
+st.write(f"### Comparison: {year_1} vs {year_2}")
+st.metric(f"Surplus/Deficit in {year_1}", f"{year_1_data['Difference (NIS)']:.2f} NIS")
+st.metric(f"Surplus/Deficit in {year_2}", f"{year_2_data['Difference (NIS)']:.2f} NIS")
+
+# Display data table
+st.subheader("Data Table")
+st.dataframe(df)
