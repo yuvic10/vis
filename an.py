@@ -3,44 +3,70 @@ import pandas as pd
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
-# URL של קובץ ה-Excel שהועלה ל-GitHub
-file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_products.xlsx"
-
 # כותרת האפליקציה
-st.title("Product Basket Analysis")
+st.title("Shopping Basket Affordability by Year")
+st.write("Select products for your basket and set a maximum price to filter the years.")
 
-try:
-    # קריאת הנתונים מתוך הקובץ
-    data = pd.read_excel(file_url, engine="openpyxl")
-    st.write("### Data Preview")
-    st.dataframe(data)
+# העלאת קובץ ה-Excel
+uploaded_file = st.file_uploader("Upload your Excel file", type=["xlsx"])
 
-    # יצירת ממשק לבחירת מוצרים
-    selected_products = st.multiselect("Select products to include in your basket:", options=data["product"].unique())
+if uploaded_file is not None:
+    try:
+        # קריאת נתונים מהקובץ
+        data = pd.read_excel(uploaded_file, engine="openpyxl")
 
-    # סינון הנתונים על סמך המוצרים שנבחרו
-    if selected_products:
-        filtered_data = data[data["product"].isin(selected_products)]
+        # בדיקה שהעמודות הנדרשות קיימות
+        if not all(col in data.columns for col in ["product", "year", "yearly average price"]):
+            st.error("The file must contain 'product', 'year', and 'yearly average price' columns.")
+        else:
+            # המרת נתונים למבנה מתאים
+            product_prices = {
+                product: {
+                    row["year"]: row["yearly average price"]
+                    for _, row in data[data["product"] == product].iterrows()
+                }
+                for product in data["product"].unique()
+            }
 
-        # חישוב המחירים הכוללים לכל שנה
-        yearly_totals = filtered_data.groupby("year")["yearly average price"].sum()
+            # בחירת מוצרים לסל
+            selected_products = st.multiselect("Select Products for Your Basket", options=list(product_prices.keys()))
 
-        # הצגת המחירים הכוללים
-        st.write("### Total Basket Cost Per Year")
-        st.line_chart(yearly_totals)
+            # חישוב המחיר הכולל של הסל לאורך השנים
+            basket_prices = {year: 0 for year in data["year"].unique()}
+            for product in selected_products:
+                for year, price in product_prices[product].items():
+                    basket_prices[year] += price
 
-        # יצירת ענן מילים המבוסס על המחירים השנתיים
-        word_frequencies = yearly_totals.to_dict()
-        wordcloud = WordCloud(width=800, height=400, background_color="white").generate_from_frequencies(word_frequencies)
+            # בחירת תקרת מחיר
+            max_price = st.slider("Set Maximum Basket Price", min_value=int(data["yearly average price"].min()),
+                                  max_value=int(data["yearly average price"].sum()), value=50)
 
-        # הצגת ענן המילים
-        st.write("### Word Cloud of Years Based on Basket Cost")
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.imshow(wordcloud, interpolation="bilinear")
-        ax.axis("off")
-        st.pyplot(fig)
-    else:
-        st.info("Please select products to see the analysis.")
+            # סינון שנים לפי תקרת המחיר
+            filtered_years = {str(year): price for year, price in basket_prices.items() if price <= max_price}
 
-except Exception as e:
-    st.error(f"Failed to load or process the file: {e}")
+            # בדיקה אם יש שנים להצגה
+            if filtered_years:
+                # יצירת ענן מילים
+                wordcloud = WordCloud(
+                    width=800, height=400,
+                    background_color='white'
+                ).generate_from_frequencies(filtered_years)
+
+                # הצגת ענן המילים
+                st.subheader("Years Where the Basket is Affordable")
+                fig, ax = plt.subplots(figsize=(10, 5))
+                ax.imshow(wordcloud, interpolation='bilinear')
+                ax.axis('off')
+                st.pyplot(fig)
+            else:
+                st.warning("No years match the selected basket and price criteria.")
+
+            # הצגת טבלה עם מחירי הסל
+            st.subheader("Basket Prices by Year")
+            st.write("The table below shows the total basket prices for each year.")
+            st.table({"Year": list(basket_prices.keys()), "Basket Price": list(basket_prices.values())})
+
+    except Exception as e:
+        st.error(f"Failed to load or process the file: {e}")
+else:
+    st.info("Please upload an Excel file to proceed.")
