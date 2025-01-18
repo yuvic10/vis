@@ -1,53 +1,47 @@
 import streamlit as st
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
+import pandas as pd
 
-# נתונים לדוגמה: מחירי מוצרים לאורך השנים
-product_prices = {
-    "Flour": {2015: 10, 2016: 12, 2017: 14, 2018: 15, 2019: 16, 2020: 18, 2021: 20, 2022: 22, 2023: 25},
-    "Milk": {2015: 20, 2016: 22, 2017: 24, 2018: 26, 2019: 28, 2020: 30, 2021: 32, 2022: 35, 2023: 38},
-    "Eggs": {2015: 15, 2016: 16, 2017: 18, 2018: 19, 2019: 20, 2020: 22, 2021: 24, 2022: 26, 2023: 28},
-    "Chicken": {2015: 50, 2016: 55, 2017: 60, 2018: 65, 2019: 70, 2020: 75, 2021: 80, 2022: 85, 2023: 90},
-    "Rice": {2015: 30, 2016: 32, 2017: 35, 2018: 37, 2019: 40, 2020: 42, 2021: 45, 2022: 48, 2023: 50},
+# Load the data
+data = {
+    "product": ["avocado", "rice", "eggs", "banana", "onion", "avocado", "rice", "eggs", "banana", "onion"],
+    "year": [2015, 2015, 2015, 2015, 2015, 2016, 2016, 2016, 2016, 2016],
+    "yearly_average_price": [6.73, 9.596, 23.233, 3.648, 3.414, 11.031, 9.568, 22.0, 5.597, 3.228],
 }
 
-# ממשק Streamlit
-st.title("Shopping Basket Affordability by Year")
-st.write("Select products for your basket and set a maximum price to filter the years.")
+df = pd.DataFrame(data)
 
-# בחירת מוצרים לסל
-selected_products = st.multiselect("Select Products for Your Basket", options=list(product_prices.keys()))
+# Streamlit app
+st.title("Word Cloud for Years Based on Basket Cost")
 
-# חישוב המחיר הכולל של הסל לאורך השנים
-basket_prices = {year: 0 for year in range(2015, 2024)}
-for product in selected_products:
-    for year, price in product_prices[product].items():
-        basket_prices[year] += price
+# Select products for the basket
+selected_products = st.multiselect("Select Products", options=df["product"].unique())
 
-# בחירת תקרת מחיר
-max_price = st.slider("Set Maximum Basket Price", min_value=10, max_value=200, value=50)
+# Filter data based on selected products
+filtered_data = df[df["product"].isin(selected_products)]
 
-# סינון שנים לפי תקרת המחיר
-filtered_years = {str(year): price for year, price in basket_prices.items() if price <= max_price}
+# Calculate total yearly cost for the selected products
+yearly_cost = filtered_data.groupby("year")["yearly_average_price"].sum()
 
-# בדיקה אם יש שנים להצגה
+# Display total yearly cost
+yearly_cost = yearly_cost.reset_index()
+
+# Allow user to set a cost threshold
+threshold = st.slider("Set Cost Threshold", min_value=0, max_value=int(yearly_cost["yearly_average_price"].max()), value=10)
+
+# Filter years below the threshold
+filtered_years = {str(row["year"]): row["yearly_average_price"] for _, row in yearly_cost.iterrows() if row["yearly_average_price"] <= threshold}
+
 if filtered_years:
-    # יצירת ענן מילים
-    wordcloud = WordCloud(
-        width=800, height=400,
-        background_color='white'
-    ).generate_from_frequencies(filtered_years)
+    # Generate word cloud
+    wordcloud = WordCloud(width=800, height=400, background_color="white").generate_from_frequencies(filtered_years)
 
-    # הצגת ענן המילים
-    st.subheader("Years Where the Basket is Affordable")
+    # Display the word cloud
+    st.subheader("Word Cloud")
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.imshow(wordcloud, interpolation='bilinear')
-    ax.axis('off')
+    ax.imshow(wordcloud, interpolation="bilinear")
+    ax.axis("off")
     st.pyplot(fig)
 else:
-    st.warning("No years match the selected basket and price criteria.")
-
-# הצגת טבלה עם מחירי הסל
-st.subheader("Basket Prices by Year")
-st.write("The table below shows the total basket prices for each year.")
-st.table({"Year": list(basket_prices.keys()), "Basket Price": list(basket_prices.values())})
+    st.warning("No years match the selected threshold.")
