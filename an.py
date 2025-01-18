@@ -1,57 +1,55 @@
 import streamlit as st
-import pydeck as pdk
 import pandas as pd
-import random
+import matplotlib.pyplot as plt
 
-# נתוני דוגמה
+# נתוני דוגמה (החלף בנתונים שלך)
 data = {
-    "Year": [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023],
-    "Latitude": [random.uniform(-90, 90) for _ in range(9)],
-    "Longitude": [random.uniform(-180, 180) for _ in range(9)],
-    "Category": ["Fuel", "Rent", "Food"] * 3,
-    "Actual Price": [random.uniform(100, 500) for _ in range(9)],
-    "Simulated Price": [random.uniform(80, 400) for _ in range(9)],
+    "product": ["Flour", "Pasta", "Rice", "Chicken", "Oil"],
+    "2018": [4.0, 5.3, 9.5, 33.3, 10.7],
+    "2019": [4.2, 5.4, 9.7, 34.0, 11.0],
+    "2020": [4.4, 5.5, 10.0, 35.0, 11.5],
+    "2021": [4.5, 5.6, 10.3, 36.0, 12.0],
+    "2022": [4.6, 5.8, 10.5, 37.0, 12.5],
+    "2023": [4.8, 6.0, 10.7, 38.0, 13.0],
 }
 
-# יצירת DataFrame
 df = pd.DataFrame(data)
 
-# הגדרות תצוגה ב-Streamlit
-st.title("גלובוס מחירים אינטראקטיבי")
-st.sidebar.header("הגדרות")
-selected_year = st.sidebar.selectbox("בחר שנה", options=df["Year"].unique())
-selected_category = st.sidebar.multiselect(
-    "בחר קטגוריות", options=df["Category"].unique(), default=df["Category"].unique()
+# פונקציה לחשב את הסל
+def calculate_basket(selected_products):
+    selected_data = df[df["product"].isin(selected_products)].iloc[:, 1:]
+    yearly_totals = selected_data.sum().to_dict()
+    return yearly_totals
+
+# כותרת האפליקציה
+st.title("Build Your Basket Over the Years")
+
+# בחירת מוצרים
+selected_products = st.multiselect(
+    "Select products to add to your basket:",
+    options=df["product"].tolist(),
+    default=[]
 )
 
-# סינון הנתונים לפי השנה והקטגוריה שנבחרו
-filtered_data = df[
-    (df["Year"] == selected_year) & (df["Category"].isin(selected_category))
-]
+# חישוב מחירי הסל
+if selected_products:
+    basket_prices = calculate_basket(selected_products)
 
-# הגדרות ל-Mapbox
-st.write(f"מציג נתונים עבור השנה: {selected_year}")
+    # יצירת גרף
+    st.subheader("Basket Prices Over the Years")
+    fig, ax = plt.subplots()
+    years = list(basket_prices.keys())
+    prices = list(basket_prices.values())
 
-# יצירת PyDeck Map
-layer = pdk.Layer(
-    "ScatterplotLayer",
-    data=filtered_data,
-    get_position=["Longitude", "Latitude"],
-    get_radius="Actual Price",  # רדיוס כגודל המחיר האמיתי
-    get_fill_color=[255, 0, 0, 140],  # צבע אדום למחיר האמיתי
-    pickable=True,
-)
+    ax.plot(years, prices, marker="o", label="Basket Price")
+    ax.set_title("Basket Price Evolution")
+    ax.set_xlabel("Year")
+    ax.set_ylabel("Price")
+    ax.legend()
+    st.pyplot(fig)
 
-view_state = pdk.ViewState(latitude=0, longitude=0, zoom=1, pitch=50)
-
-r = pdk.Deck(
-    layers=[layer],
-    initial_view_state=view_state,
-    tooltip={"text": "{Category}\nActual Price: {Actual Price}"},
-)
-
-st.pydeck_chart(r)
-
-# הצגת נתונים
-st.write("נתונים נבחרים:")
-st.dataframe(filtered_data)
+    # הצגת טבלה
+    st.subheader("Basket Details")
+    st.write(pd.DataFrame({"Year": years, "Basket Price": prices}))
+else:
+    st.write("Please select products to see the basket price over the years.")
