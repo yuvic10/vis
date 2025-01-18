@@ -23,7 +23,7 @@ st.write("Select a threshold percentage to filter the years shown.")
 threshold = st.slider("Select Threshold Percentage", min_value=1, max_value=10, value=3)
 
 # סינון שנים לפי סף
-filtered_years = {year: value for year, value in year_data.items() if value >= threshold}
+filtered_years = {str(year): value for year, value in year_data.items() if value >= threshold}
 
 # בדיקה אם יש שנים להצגה
 if filtered_years:
