@@ -15,8 +15,8 @@ product_prices = {
 monthly_income = {2015: 5000, 2016: 5100, 2017: 5200, 2018: 5300, 2019: 5400, 2020: 5500, 2021: 5600, 2022: 5700, 2023: 5800}
 
 # ממשק Streamlit
-st.title("Interactive Word Cloud: Shopping Basket and Years")
-st.write("Build your shopping basket and see how the years scale based on the basket's percentage of income.")
+st.title("Word Cloud of Years Based on Shopping Basket Percentage")
+st.write("Select products to build your basket and adjust the threshold percentage to filter the years shown.")
 
 # בחירת מוצרים לסל
 selected_products = st.multiselect("Select Products for Your Basket", options=list(product_prices.keys()))
@@ -31,18 +31,20 @@ for product in selected_products:
 basket_percentages = {year: (basket_prices[year] * 4 / monthly_income[year]) * 100 for year in basket_prices}  # 4 פעמים בחודש
 
 # בחירת סף אחוזים
-threshold = st.slider("Select Threshold Percentage", min_value=0, max_value=50, value=10)
+threshold = st.slider("Select Threshold Percentage", min_value=1, max_value=50, value=10)
 
 # סינון שנים לפי סף
-filtered_years = {str(year): percent for year, percent in basket_percentages.items() if percent >= threshold}
+filtered_years = {str(year): value for year, value in basket_percentages.items() if value >= threshold}
 
-# הצגת השנים בענן מילים
+# בדיקה אם יש שנים להצגה
 if filtered_years:
+    # יצירת ענן מילים
     wordcloud = WordCloud(
         width=800, height=400,
         background_color='white'
     ).generate_from_frequencies(filtered_years)
 
+    # הצגת ענן המילים
     st.subheader("Filtered Word Cloud")
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.imshow(wordcloud, interpolation='bilinear')
@@ -51,7 +53,7 @@ if filtered_years:
 else:
     st.warning("No years match the selected threshold.")
 
-# הצגת טבלה עם המחירים והאחוזים
-st.subheader("Yearly Basket Prices and Percentages")
-table_data = {"Year": list(basket_prices.keys()), "Basket Price": list(basket_prices.values()), "Percentage of Income": list(basket_percentages.values())}
-st.table(table_data)
+# הצגת טבלה עם מחירי הסל
+st.subheader("Basket Prices and Percentages")
+st.write("The table below shows the total basket prices and their percentage of income for each year.")
+st.table({"Year": list(basket_percentages.keys()), "Basket Price": list(basket_prices.values()), "Percentage of Income": list(basket_percentages.values())})
