@@ -1,70 +1,58 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
 
 # נתונים לדוגמה
-years = list(range(2010, 2023))
-categories = ['Fuel', 'Rent', 'Products']
+years = np.arange(2010, 2023)
+wages = [4500, 4700, 4900, 5100, 5300, 5600, 5900, 6200, 6500, 6700, 6900, 7100, 7300]
+fuel_prices = [6, 6.2, 6.5, 6.7, 7, 7.2, 7.5, 7.8, 8, 8.2, 8.5, 8.8, 9]
+rent_prices = [3000, 3100, 3200, 3400, 3600, 3800, 4000, 4200, 4400, 4600, 4800, 5000, 5200]
+product_prices = [100, 105, 110, 115, 120, 125, 130, 135, 140, 145, 150, 155, 160]
 
-# מחירים אמיתיים ומדומים לדוגמה
-actual_prices = pd.DataFrame({
-    'Year': years,
-    'Fuel': np.random.randint(100, 200, len(years)),
-    'Rent': np.random.randint(500, 800, len(years)),
-    'Products': np.random.randint(50, 150, len(years))
+# הכנת DataFrame
+data = pd.DataFrame({
+    "Year": years,
+    "Wages": wages,
+    "Fuel": fuel_prices,
+    "Rent": rent_prices,
+    "Products": product_prices
 })
-wage_growth = np.linspace(1.02, 1.05, len(years))  # אחוזי עליית שכר לדוגמה
 
-# יצירת מחירים מדומים בהתבסס על השכר
-predicted_prices = actual_prices.copy()
-for col in categories:
-    predicted_prices[col] = predicted_prices[col].iloc[0] * np.cumprod(wage_growth)
-
-# פונקציה לחישוב היחס בין המחירים
-def calculate_difference(actual, predicted):
-    return (actual - predicted) / predicted
-
-# חישוב הפערים
-differences = actual_prices.set_index('Year')[categories].subtract(
-    predicted_prices.set_index('Year')[categories]
-)
-relative_differences = calculate_difference(actual_prices.set_index('Year'), 
-                                            predicted_prices.set_index('Year'))
+# חישוב אחוז השינוי האמיתי במשכורות
+data["Wage Growth (%)"] = data["Wages"].pct_change().fillna(0) * 100
 
 # ממשק Streamlit
-st.title("Comparison Between Actual and Projected Prices")
-st.sidebar.title("Settings")
+st.title("Real vs. Simulated Prices Based on Wage Growth")
+st.sidebar.header("Interactive Controls")
 
 # בחירת קטגוריה
-selected_categories = st.sidebar.multiselect("Select Categories", categories, default=categories)
-growth_rate = st.sidebar.slider("Set Wage Growth Rate (%)", 1, 10, 3) / 100
-years_selected = st.sidebar.slider("Select Year Range", min_value=min(years), max_value=max(years), value=(min(years), max(years)))
+categories = st.sidebar.multiselect("Choose Categories:", ["Fuel", "Rent", "Products"], default=["Fuel", "Rent", "Products"])
 
-# סינון נתונים לפי שנים נבחרות
-filtered_actual = actual_prices[(actual_prices['Year'] >= years_selected[0]) & 
-                                (actual_prices['Year'] <= years_selected[1])]
-filtered_predicted = predicted_prices[(predicted_prices['Year'] >= years_selected[0]) & 
-                                      (predicted_prices['Year'] <= years_selected[1])]
-filtered_differences = relative_differences[(relative_differences.index >= years_selected[0]) & 
-                                            (relative_differences.index <= years_selected[1])]
+# מחוון לשינוי אחוזי עלייה
+custom_growth = st.sidebar.slider("Set Custom Wage Growth (%)", min_value=-5.0, max_value=10.0, step=0.1, value=2.0)
 
-# הצגת מפה
-st.subheader("Heatmap of Price Differences")
-heatmap_data = filtered_differences[selected_categories]
+# הוספת נתונים מדומים עם אחוז העלייה שנבחר
+for category in categories:
+    initial_value = data[category].iloc[0]
+    data[f"{category}_Simulated"] = [initial_value * ((1 + custom_growth / 100) ** i) for i in range(len(data))]
+
+# גרף
 fig, ax = plt.subplots(figsize=(10, 6))
-sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap="RdYlGn", ax=ax, cbar_kws={'label': 'Difference'})
-ax.set_title("Relative Price Differences (Actual vs Projected)")
+for category in categories:
+    # מחירים אמיתיים
+    ax.plot(data["Year"], data[category], label=f"{category} (Real)", linestyle="solid", marker="o")
+    # מחירים מדומים
+    ax.plot(data["Year"], data[f"{category}_Simulated"], label=f"{category} (Simulated)", linestyle="dashed", marker="o")
+
+ax.set_title("Comparison of Real vs. Simulated Prices")
+ax.set_xlabel("Year")
+ax.set_ylabel("Price")
+ax.legend()
+ax.grid()
+
 st.pyplot(fig)
 
-# הצגת גרף קווי (אם לחצו על שנה)
-selected_year = st.sidebar.selectbox("Select Year to Drill Down", years)
-if selected_year:
-    st.subheader(f"Yearly Comparison for {selected_year}")
-    yearly_data = pd.DataFrame({
-        'Category': categories,
-        'Actual': filtered_actual[filtered_actual['Year'] == selected_year][categories].values[0],
-        'Projected': filtered_predicted[filtered_predicted['Year'] == selected_year][categories].values[0]
-    }).set_index('Category')
-    st.bar_chart(yearly_data)
+# הצגת טבלה
+st.subheader("Data Table")
+st.dataframe(data)
