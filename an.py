@@ -1,65 +1,53 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
 
 # נתונים לדוגמה
-years = list(range(2010, 2021))
-real_prices = {
-    "Fuel": [6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10, 10.5, 11],
-    "Rent": [3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700, 3800, 3900, 4000],
-    "Products": [500, 520, 540, 560, 580, 600, 620, 640, 660, 680, 700],
-}
-salary_growth_rates = [2.5, 3, 2, 2.5, 3, 2, 1.5, 2.5, 3, 2, 2.5]  # אחוזי שינוי של המשכורות
+years = [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022]
+salaries = [5000, 5200, 5400, 5600, 5800, 6000, 6200, 6400]  # משכורות
+products_prices = [200, 220, 250, 270, 300, 320, 350, 370]  # מחירי מוצרים
+fuel_prices = [6, 6.2, 6.5, 6.8, 7, 7.2, 7.5, 7.8]  # מחירי דלק
+rent_prices = [3000, 3100, 3200, 3300, 3400, 3500, 3600, 3700]  # מחירי שכירות
 
-# פונקציה לחישוב מחירים מדומים על סמך אחוזי שינוי השכר
-def calculate_projected_prices(base_prices, growth_rates):
-    projected_prices = [base_prices[0]]
-    for i in range(1, len(base_prices)):
-        projected_price = projected_prices[-1] * (1 + growth_rates[i - 1] / 100)
-        projected_prices.append(projected_price)
-    return projected_prices
+# חישוב אחוזי שינוי במשכורות
+salary_growth = [0] + [((salaries[i] - salaries[i-1]) / salaries[i-1]) for i in range(1, len(salaries))]
 
-# יצירת מחירים מדומים
-projected_prices = {
-    category: calculate_projected_prices(prices, salary_growth_rates)
-    for category, prices in real_prices.items()
-}
+# פונקציה לחישוב מחירים מדומים
+def calculate_simulated_prices(prices, growth):
+    simulated = [prices[0]]
+    for i in range(1, len(prices)):
+        simulated.append(simulated[-1] * (1 + growth[i]))
+    return simulated
 
-# אפליקציה ב-Streamlit
-st.title("Real vs. Projected Prices Based on Salary Growth")
+# מחירים מדומים לכל קטגוריה
+simulated_products = calculate_simulated_prices(products_prices, salary_growth)
+simulated_fuel = calculate_simulated_prices(fuel_prices, salary_growth)
+simulated_rent = calculate_simulated_prices(rent_prices, salary_growth)
 
-# בחירת קטגוריה
-category = st.selectbox("Select a category:", ["Fuel", "Rent", "Products"])
+# Streamlit UI
+st.title("Real vs Simulated Prices Based on Salary Growth")
+category = st.selectbox("Choose a category", ["Products", "Fuel", "Rent"])
 
-# הצגת מחוון לאחוז עלייה נוסף
-additional_growth = st.slider("Additional salary growth (%)", min_value=0.0, max_value=5.0, value=0.0, step=0.1)
+# בחר קטגוריה להצגה
+if category == "Products":
+    real_prices = products_prices
+    simulated_prices = simulated_products
+elif category == "Fuel":
+    real_prices = fuel_prices
+    simulated_prices = simulated_fuel
+else:
+    real_prices = rent_prices
+    simulated_prices = simulated_rent
 
-# עדכון המחירים המדומים לפי אחוז עלייה נוסף
-def adjust_projected_prices(base_projected_prices, additional_growth):
-    adjusted_prices = []
-    for price in base_projected_prices:
-        adjusted_prices.append(price * (1 + additional_growth / 100))
-    return adjusted_prices
-
-adjusted_projected_prices = adjust_projected_prices(projected_prices[category], additional_growth)
-
-# יצירת הגרף
-fig, ax = plt.subplots(figsize=(10, 6))
-
-ax.fill_between(years, real_prices[category], adjusted_projected_prices, where=np.array(adjusted_projected_prices) > np.array(real_prices[category]), 
-                facecolor='green', alpha=0.3, label='Surplus (Projected > Real)')
-ax.fill_between(years, real_prices[category], adjusted_projected_prices, where=np.array(adjusted_projected_prices) <= np.array(real_prices[category]), 
-                facecolor='red', alpha=0.3, label='Deficit (Projected <= Real)')
-
-ax.plot(years, real_prices[category], label="Real Prices", color="blue", linewidth=2)
-ax.plot(years, adjusted_projected_prices, label="Projected Prices", color="orange", linestyle="--", linewidth=2)
-
-ax.set_title(f"{category}: Real vs. Projected Prices", fontsize=16)
-ax.set_xlabel("Year", fontsize=12)
-ax.set_ylabel("Price (NIS)", fontsize=12)
+# יצירת גרף
+fig, ax = plt.subplots()
+ax.fill_between(years, real_prices, simulated_prices, color="red", alpha=0.3, label="Gap")
+ax.plot(years, real_prices, label="Real Prices", color="blue")
+ax.plot(years, simulated_prices, label="Simulated Prices", color="green")
+ax.set_title(f"{category} Prices: Real vs Simulated")
+ax.set_xlabel("Year")
+ax.set_ylabel("Price")
 ax.legend()
-ax.grid(True, linestyle="--", alpha=0.6)
 
-# הצגת הגרף ב-Streamlit
+# הצגת הגרף
 st.pyplot(fig)
