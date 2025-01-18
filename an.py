@@ -14,7 +14,7 @@ data = {
 df = pd.DataFrame(data)
 
 # ממשק Streamlit
-st.title("Interactive Line Chart: Real vs Modeled Prices")
+st.title("Area Chart: Real vs Modeled Prices")
 st.sidebar.header("Customize the Visualization")
 
 # בחירת קטגוריה
@@ -31,11 +31,11 @@ df["Modeled Salary"] = df["Salary"].iloc[0] * np.cumprod(df["Growth Factor"])
 for category in categories:
     df[f"Modeled {category}"] = df[category].iloc[0] * np.cumprod(df["Growth Factor"])
 
-# יצירת הגרף
+# יצירת דיאגרמת האזורים
 plt.figure(figsize=(10, 6))
 for category in selected_categories:
-    plt.plot(df["Year"], df[category], label=f"Actual {category}", linestyle="solid")
-    plt.plot(df["Year"], df[f"Modeled {category}"], label=f"Modeled {category}", linestyle="dashed")
+    plt.fill_between(df["Year"], df[category], color="blue", alpha=0.3, label=f"Actual {category}")
+    plt.fill_between(df["Year"], df[f"Modeled {category}"], df[category], color="red", alpha=0.3, label=f"Gap {category}")
 
 plt.title("Real vs Modeled Prices Based on Salary Growth")
 plt.xlabel("Year")
