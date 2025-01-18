@@ -1,59 +1,57 @@
 import streamlit as st
+import pydeck as pdk
 import pandas as pd
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
-import tempfile
-import os
+import random
 
-# נתונים לדוגמה
+# נתוני דוגמה
 data = {
-    "Year": list(range(2015, 2024)),
-    "Price": [4000, 4500, 4800, 5000, 5200, 5300, 5400, 5500, 5700],
+    "Year": [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023],
+    "Latitude": [random.uniform(-90, 90) for _ in range(9)],
+    "Longitude": [random.uniform(-180, 180) for _ in range(9)],
+    "Category": ["Fuel", "Rent", "Food"] * 3,
+    "Actual Price": [random.uniform(100, 500) for _ in range(9)],
+    "Simulated Price": [random.uniform(80, 400) for _ in range(9)],
 }
+
+# יצירת DataFrame
 df = pd.DataFrame(data)
 
-# פונקציה ליצירת אנימציה
-def create_animation(dataframe):
-    years = dataframe["Year"]
-    prices = dataframe["Price"]
+# הגדרות תצוגה ב-Streamlit
+st.title("גלובוס מחירים אינטראקטיבי")
+st.sidebar.header("הגדרות")
+selected_year = st.sidebar.selectbox("בחר שנה", options=df["Year"].unique())
+selected_category = st.sidebar.multiselect(
+    "בחר קטגוריות", options=df["Category"].unique(), default=df["Category"].unique()
+)
 
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.set_xlim(min(years) - 1, max(years) + 1)
-    ax.set_ylim(0, max(prices) * 1.1)
-    ax.set_title("זרימת מחירי הסל לאורך השנים", fontsize=16)
-    ax.set_xlabel("שנה", fontsize=14)
-    ax.set_ylabel("מחיר (₪)", fontsize=14)
+# סינון הנתונים לפי השנה והקטגוריה שנבחרו
+filtered_data = df[
+    (df["Year"] == selected_year) & (df["Category"].isin(selected_category))
+]
 
-    line, = ax.plot([], [], lw=2, color="blue", marker="o")
+# הגדרות ל-Mapbox
+st.write(f"מציג נתונים עבור השנה: {selected_year}")
 
-    def init():
-        line.set_data([], [])
-        return line,
+# יצירת PyDeck Map
+layer = pdk.Layer(
+    "ScatterplotLayer",
+    data=filtered_data,
+    get_position=["Longitude", "Latitude"],
+    get_radius="Actual Price",  # רדיוס כגודל המחיר האמיתי
+    get_fill_color=[255, 0, 0, 140],  # צבע אדום למחיר האמיתי
+    pickable=True,
+)
 
-    def update(frame):
-        line.set_data(years[:frame + 1], prices[:frame + 1])
-        return line,
+view_state = pdk.ViewState(latitude=0, longitude=0, zoom=1, pitch=50)
 
-    ani = FuncAnimation(fig, update, frames=len(years), init_func=init, interval=500, blit=True)
+r = pdk.Deck(
+    layers=[layer],
+    initial_view_state=view_state,
+    tooltip={"text": "{Category}\nActual Price: {Actual Price}"},
+)
 
-    # שמירת האנימציה כ-GIF זמני
-    temp_gif = tempfile.NamedTemporaryFile(delete=False, suffix=".gif")
-    ani.save(temp_gif.name, writer="pillow", fps=2)
-    plt.close(fig)
-    return temp_gif.name
+st.pydeck_chart(r)
 
-# יצירת אנימציה
-st.title("זרימת מחירי הסל לאורך השנים")
-st.write("האנימציה מציגה את העלייה במחירי הסל לאורך השנים בצורה דינמית.")
-
-gif_path = create_animation(df)
-
-# הצגת האנימציה ב-Streamlit
-st.image(gif_path)
-
-# מחיקת הקובץ הזמני אחרי סיום השימוש
-def cleanup_file():
-    if os.path.exists(gif_path):
-        os.remove(gif_path)
-
-st.on_event("disconnect", cleanup_file)
+# הצגת נתונים
+st.write("נתונים נבחרים:")
+st.dataframe(filtered_data)
