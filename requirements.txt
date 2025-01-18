@@ -1,8 +1,4 @@
-streamlit
-pandas
-matplotlib
-folium
-streamlit_folium 
-seaborn
-wordcloud
-pillow
+streamlit==1.25.0
+pydeck==0.8.1b0
+pandas==2.1.1
+numpy==1.24.2
