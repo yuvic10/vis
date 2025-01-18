@@ -3,77 +3,52 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # נתוני בסיס
-data = {
-    'Year': [2015, 2016, 2017, 2018, 2019, 2020],
-    'Minimum Wage': [5000, 5200, 5400, 5500, 5700, 6000],  # הכנסות
-    'Total Expenses': [4800, 5100, 5300, 5600, 5800, 6100],  # הוצאות כוללות
+products = {
+    "Milk": [5, 5.5, 6, 6.5, 7, 7.5],
+    "Bread": [10, 10.5, 11, 11.5, 12, 12.5],
+    "Eggs": [15, 15.5, 16, 16.5, 17, 17.5],
+    "Rice": [8, 8.5, 9, 9.5, 10, 10.5]
 }
-df = pd.DataFrame(data)
+years = [2015, 2016, 2017, 2018, 2019, 2020]
+minimum_wage = [5000, 5200, 5400, 5500, 5700, 6000]
 
-# מחוונים לחלוקת הוצאות
-st.sidebar.header("Adjust Expense Proportions")
-fuel_percent = st.sidebar.slider("Fuel (%)", 0, 100, 30)
-rent_percent = st.sidebar.slider("Rent (%)", 0, 100, 50)
-products_percent = st.sidebar.slider("Basic Products (%)", 0, 100, 20)
+# יצירת DataFrame
+df_products = pd.DataFrame(products, index=years)
+df_products["Total Basket"] = df_products.sum(axis=1)
+df_products["Minimum Wage"] = minimum_wage
+df_products["Percentage of Wage"] = (df_products["Total Basket"] / df_products["Minimum Wage"]) * 100
 
-# וידוא שהאחוזים מסתכמים ל-100
-total_percent = fuel_percent + rent_percent + products_percent
-if total_percent != 100:
-    st.error("The total percentage must equal 100%!")
-else:
-    # חישוב הוצאות מותאמות
-    df['Adjusted Expenses'] = df['Total Expenses'] * (
-        (fuel_percent / 100) + (rent_percent / 100) + (products_percent / 100)
-    )
+# ממשק משתמש לבחירת מוצרים
+st.sidebar.header("Choose Products for the Basket")
+selected_products = st.sidebar.multiselect(
+    "Select Products:", options=df_products.columns[:-3], default=df_products.columns[:-3]
+)
 
-    # חישוב חיסכון
-    df['Savings'] = df['Minimum Wage'] - df['Adjusted Expenses']
+df_selected = df_products[selected_products]
+df_selected["Total Basket"] = df_selected.sum(axis=1)
+df_selected["Percentage of Wage"] = (df_selected["Total Basket"] / df_products["Minimum Wage"]) * 100
 
-    # יצירת הגרף הגדול והברור
-    fig, ax = plt.subplots(figsize=(12, 8))  # הגדלת הגרף
-    ax.plot(df['Year'], df['Minimum Wage'], label='Minimum Wage', color='blue', linewidth=2)
-    ax.plot(df['Year'], df['Adjusted Expenses'], label='Adjusted Expenses', color='red', linewidth=2)
+# כותרת
+st.title("Shopping Basket Over the Years")
 
-    # אזורים ירוקים ואדומים
-    ax.fill_between(
-        df['Year'],
-        df['Minimum Wage'],
-        df['Adjusted Expenses'],
-        where=(df['Minimum Wage'] >= df['Adjusted Expenses']),
-        color='lightgreen',
-        alpha=0.5,
-        label='Savings (Surplus)'
-    )
-    ax.fill_between(
-        df['Year'],
-        df['Minimum Wage'],
-        df['Adjusted Expenses'],
-        where=(df['Minimum Wage'] < df['Adjusted Expenses']),
-        color='pink',
-        alpha=0.5,
-        label='Deficit'
-    )
+# גרף קווי להצגת מחיר סל הקניות לאורך השנים
+fig, ax = plt.subplots(figsize=(12, 8))
+ax.plot(years, df_selected["Total Basket"], label="Total Basket Price", color="blue", marker="o")
+ax.plot(years, df_products["Minimum Wage"], label="Minimum Wage", color="green", linestyle="--")
 
-    # כותרות וצירים עם גדלים גדולים
-    ax.set_title("Income vs. Expenses Over Time", fontsize=20)
-    ax.set_xlabel("Year", fontsize=16)
-    ax.set_ylabel("Amount (NIS)", fontsize=16)
-    ax.axhline(0, color='black', linestyle='--', linewidth=0.8)
-    ax.legend(fontsize=14)
+# כותרות וצירים
+ax.set_title("Basket Price vs Minimum Wage", fontsize=20)
+ax.set_xlabel("Year", fontsize=16)
+ax.set_ylabel("Price (NIS)", fontsize=16)
+ax.legend(fontsize=14)
 
-    # הצגת הגרף
-    st.pyplot(fig)
+# הצגת הגרף
+st.pyplot(fig)
 
-    # טבלה אינטראקטיבית להצגת הנתונים
-    st.subheader("Data Table")
-    st.dataframe(df)
+# אינדיקטור של אחוז מהשכר
+st.subheader("Basket as Percentage of Minimum Wage")
+st.line_chart(df_selected["Percentage of Wage"])
 
-    # הצגת surplus/deficit של שנה מסוימת
-    st.subheader("Surplus/Deficit by Year")
-    selected_year = st.selectbox("Select a Year:", df['Year'])
-    selected_data = df[df['Year'] == selected_year]
-    st.metric(
-        f"Savings in {selected_year}",
-        f"{selected_data['Savings'].values[0]:.2f} NIS",
-        delta=f"{selected_data['Savings'].values[0]:.2f} NIS"
-    )
+# הצגת טבלה
+st.subheader("Data Table")
+st.dataframe(df_selected)
