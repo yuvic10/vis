@@ -14,14 +14,14 @@ data = {
 df = pd.DataFrame(data)
 
 # ממשק Streamlit
-st.title("Dynamic Difference Chart: Real vs Modeled Prices")
+st.title("Cumulative Prices: Real vs Modeled")
 st.sidebar.header("Customize the Visualization")
 
-# בחירת קטגוריה
+# בחירת קטגוריות
 categories = ["Fuel", "Rent", "Goods"]
 selected_categories = st.sidebar.multiselect("Choose categories to display", categories, default=categories)
 
-# מחוון לאחוז השינוי
+# חישוב שיעור העלייה הממוצע של השכר
 default_increase = (np.mean(np.diff(df["Salary"]) / df["Salary"][:-1]) * 100).round(2)
 growth_rate = st.sidebar.slider("Adjust the annual salary growth rate (%)", min_value=0.0, max_value=10.0, value=default_increase)
 
@@ -31,17 +31,15 @@ df["Modeled Salary"] = df["Salary"].iloc[0] * np.cumprod(df["Growth Factor"])
 for category in categories:
     df[f"Modeled {category}"] = df[category].iloc[0] * np.cumprod(df["Growth Factor"])
 
-# יצירת הגרף
+# יצירת גרף המחירים המצטברים
 plt.figure(figsize=(10, 6))
 for category in selected_categories:
-    plt.plot(df["Year"], df[category], label=f"Actual {category}", linestyle="solid")
-    plt.plot(df["Year"], df[f"Modeled {category}"], label=f"Modeled {category}", linestyle="dashed")
-    for year, real, modeled in zip(df["Year"], df[category], df[f"Modeled {category}"]):
-        plt.plot([year, year], [real, modeled], color="red" if modeled > real else "green", alpha=0.5)
+    plt.fill_between(df["Year"], 0, df[category], color="blue", alpha=0.3, label=f"Actual {category}")
+    plt.fill_between(df["Year"], 0, df[f"Modeled {category}"], color="green", alpha=0.3, label=f"Modeled {category}")
 
-plt.title("Real vs Modeled Prices with Differences")
+plt.title("Cumulative Prices: Real vs Modeled")
 plt.xlabel("Year")
-plt.ylabel("Price")
+plt.ylabel("Total Price")
 plt.legend()
 plt.grid()
 st.pyplot(plt)
