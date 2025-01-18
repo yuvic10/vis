@@ -26,32 +26,30 @@ else:
         (fuel_percent / 100) + (rent_percent / 100) + (products_percent / 100)
     )
 
-    # חישוב חיסכון
-    df['Savings'] = df['Minimum Wage'] - df['Adjusted Expenses']
+    # חישוב Surplus Index
+    df['Surplus Index (%)'] = ((df['Minimum Wage'] - df['Adjusted Expenses']) / df['Minimum Wage']) * 100
 
-    # גרף קווי
-    st.title("Savings vs. Income and Expenses")
+    # גרף קווי: Surplus Index
+    st.title("Surplus Index Over Time")
     fig, ax = plt.subplots()
-    ax.plot(df['Year'], df['Minimum Wage'], label='Minimum Wage (Income)', color='blue')
-    ax.plot(df['Year'], df['Adjusted Expenses'], label='Adjusted Expenses', color='red')
-    ax.plot(df['Year'], df['Savings'], label='Savings', color='green', linestyle='--')
+    ax.plot(df['Year'], df['Surplus Index (%)'], label='Surplus Index (%)', color='green', marker='o')
 
     # כותרות וצירים
-    ax.set_title("Savings Over Time")
+    ax.set_title("Surplus Index Over Time")
     ax.set_xlabel("Year")
-    ax.set_ylabel("NIS")
+    ax.set_ylabel("Surplus Index (%)")
+    ax.axhline(0, color='red', linestyle='--', label='Break-Even Point')
     ax.legend()
 
     # הצגת הגרף
     st.pyplot(fig)
 
-    # טבלה אינטראקטיבית להצגת הנתונים
+    # הצגת טבלה עם הנתונים
     st.subheader("Data Table")
     st.dataframe(df)
 
-    # השוואת חיסכון לפי שנה
-    st.subheader("Savings Comparison by Year")
+    # הצגת surplus של שנה מסוימת
+    st.subheader("Surplus Comparison by Year")
     selected_year = st.selectbox("Select a Year:", df['Year'])
     selected_data = df[df['Year'] == selected_year]
-    st.metric("Savings in Selected Year", f"{selected_data['Savings'].values[0]:.2f} NIS")
-
+    st.metric(f"Surplus Index in {selected_year}", f"{selected_data['Surplus Index (%)'].values[0]:.2f}%")
