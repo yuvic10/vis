@@ -5,33 +5,37 @@ import matplotlib.pyplot as plt
 # נתוני דוגמה
 data = {
     'שנה': [2000, 2005, 2010, 2015, 2020],
-    'מחיר אמיתי - דירות': [1000, 1500, 2200, 3000, 4500],
-    'מחיר אמיתי - דלק': [5, 6, 8, 10, 12],
-    'מחיר אמיתי - מוצרים': [20, 25, 30, 40, 60],
+    'שכר מינימום': [3000, 3500, 4000, 4500, 5000],
+    'יוקר מחיה': [2800, 3600, 4200, 4800, 5500]
 }
 df = pd.DataFrame(data)
 
-# מחוון לקצב צמיחה
-growth_rate = st.slider('בחר קצב צמיחה שנתי (%):', min_value=0.0, max_value=10.0, step=0.1)
+# חישוב פערים
+df['פער (ש"ח)'] = df['שכר מינימום'] - df['יוקר מחיה']
 
-# חישוב מחירים מדומים
-for category in ['דירות', 'דלק', 'מוצרים']:
-    initial_price = df[f'מחיר אמיתי - {category}'].iloc[0]
-    df[f'מחיר מדומה - {category}'] = [
-        initial_price * (1 + growth_rate / 100) ** i for i in range(len(df))
-    ]
+# כותרת האפליקציה
+st.title("שכר מינימום מול יוקר המחיה")
 
-# בחירת קטגוריה להצגה
-category = st.selectbox('בחר קטגוריה:', ['דירות', 'דלק', 'מוצרים'])
-
-# יצירת גרף
+# גרף קווי: שכר מינימום ויוקר מחיה
 fig, ax = plt.subplots()
-ax.plot(df['שנה'], df[f'מחיר אמיתי - {category}'], label='מחיר אמיתי', color='blue')
-ax.plot(df['שנה'], df[f'מחיר מדומה - {category}'], label='מחיר מדומה', color='orange', linestyle='--')
-ax.set_title(f'השוואה בין מחיר אמיתי למחיר מדומה ({category})')
-ax.set_xlabel('שנה')
-ax.set_ylabel('מחיר')
+ax.plot(df['שנה'], df['שכר מינימום'], label='שכר מינימום', color='blue')
+ax.plot(df['שנה'], df['יוקר מחיה'], label='יוקר מחיה', color='red')
+ax.fill_between(df['שנה'], df['שכר מינימום'], df['יוקר מחיה'], 
+                where=(df['שכר מינימום'] < df['יוקר מחיה']), color='pink', alpha=0.3, label='פער שלילי')
+ax.fill_between(df['שנה'], df['שכר מינימום'], df['יוקר מחיה'], 
+                where=(df['שכר מינימום'] >= df['יוקר מחיה']), color='lightgreen', alpha=0.3, label='פער חיובי')
+ax.set_title("השוואת שכר מינימום ליוקר המחיה")
+ax.set_xlabel("שנה")
+ax.set_ylabel("ש"ח")
 ax.legend()
 
 # הצגת הגרף
 st.pyplot(fig)
+
+# טבלה להצגת הנתונים
+st.dataframe(df)
+
+# מד חיסכון שנתי
+year = st.selectbox('בחר שנה:', df['שנה'])
+selected_year = df[df['שנה'] == year]
+st.metric(label=f"פער בשנה {year}", value=f"{selected_year['פער (ש"ח)'].values[0]} ש\"ח")
