@@ -23,29 +23,33 @@ data = pd.DataFrame({
 data["Wage Growth (%)"] = data["Wages"].pct_change().fillna(0) * 100
 
 # ממשק Streamlit
-st.title("Real vs. Simulated Prices Based on Wage Growth")
+st.title("Real vs. Simulated Prices Based on Wage Growth (Area Chart)")
 st.sidebar.header("Interactive Controls")
-
-# בחירת קטגוריה
-categories = st.sidebar.multiselect("Choose Categories:", ["Fuel", "Rent", "Products"], default=["Fuel", "Rent", "Products"])
 
 # מחוון לשינוי אחוזי עלייה
 custom_growth = st.sidebar.slider("Set Custom Wage Growth (%)", min_value=-5.0, max_value=10.0, step=0.1, value=2.0)
 
 # הוספת נתונים מדומים עם אחוז העלייה שנבחר
+categories = ["Fuel", "Rent", "Products"]
 for category in categories:
     initial_value = data[category].iloc[0]
     data[f"{category}_Simulated"] = [initial_value * ((1 + custom_growth / 100) ** i) for i in range(len(data))]
+    data[f"{category}_Gap"] = data[f"{category}_Simulated"] - data[category]
 
-# גרף
+# גרף שטחים
 fig, ax = plt.subplots(figsize=(10, 6))
 for category in categories:
-    # מחירים אמיתיים
-    ax.plot(data["Year"], data[category], label=f"{category} (Real)", linestyle="solid", marker="o")
-    # מחירים מדומים
-    ax.plot(data["Year"], data[f"{category}_Simulated"], label=f"{category} (Simulated)", linestyle="dashed", marker="o")
+    # אזור אמיתי
+    ax.fill_between(data["Year"], 0, data[category], color="blue", alpha=0.3, label=f"{category} (Real)")
+    # אזור מדומה
+    ax.fill_between(data["Year"], data[category], data[f"{category}_Simulated"], 
+                    where=(data[f"{category}_Simulated"] >= data[category]),
+                    interpolate=True, color="green", alpha=0.3, label=f"{category} Surplus")
+    ax.fill_between(data["Year"], data[category], data[f"{category}_Simulated"], 
+                    where=(data[f"{category}_Simulated"] < data[category]),
+                    interpolate=True, color="red", alpha=0.3, label=f"{category} Deficit")
 
-ax.set_title("Comparison of Real vs. Simulated Prices")
+ax.set_title("Real vs. Simulated Prices with Gaps")
 ax.set_xlabel("Year")
 ax.set_ylabel("Price")
 ax.legend()
