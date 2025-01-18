@@ -29,11 +29,8 @@ else:
     # חישוב חיסכון
     df['Savings'] = df['Minimum Wage'] - df['Adjusted Expenses']
 
-    # גרף קווי עם אזורים צבעוניים
-    st.title("Income vs. Expenses with Savings/Deficit Visualization")
-    fig, ax = plt.subplots()
-
-    # קווים
+    # יצירת הגרף הגדול והברור
+    fig, ax = plt.subplots(figsize=(12, 8))  # הגדלת הגרף
     ax.plot(df['Year'], df['Minimum Wage'], label='Minimum Wage', color='blue', linewidth=2)
     ax.plot(df['Year'], df['Adjusted Expenses'], label='Adjusted Expenses', color='red', linewidth=2)
 
@@ -57,12 +54,12 @@ else:
         label='Deficit'
     )
 
-    # כותרות וצירים
-    ax.set_title("Income vs. Expenses Over Time", fontsize=16)
-    ax.set_xlabel("Year", fontsize=12)
-    ax.set_ylabel("Amount (NIS)", fontsize=12)
+    # כותרות וצירים עם גדלים גדולים
+    ax.set_title("Income vs. Expenses Over Time", fontsize=20)
+    ax.set_xlabel("Year", fontsize=16)
+    ax.set_ylabel("Amount (NIS)", fontsize=16)
     ax.axhline(0, color='black', linestyle='--', linewidth=0.8)
-    ax.legend()
+    ax.legend(fontsize=14)
 
     # הצגת הגרף
     st.pyplot(fig)
