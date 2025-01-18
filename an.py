@@ -4,17 +4,14 @@ import matplotlib.pyplot as plt
 
 # נתוני בסיס
 data = {
-    'Year': [2020],
-    'Minimum Wage': [5000],  # הכנסות
-    'Total Expenses': [6000]  # הוצאות
+    'Year': [2015, 2016, 2017, 2018, 2019, 2020],
+    'Minimum Wage': [5000, 5200, 5400, 5500, 5700, 6000],  # הכנסה
+    'Total Expenses': [4800, 5100, 5300, 5600, 5800, 6100],  # הוצאות כוללות
 }
 df = pd.DataFrame(data)
 
-# כותרת
-st.title("Impact of Expense Distribution on Income Balance")
-
-# מחוונים לחלוקה (דלק, שכירות, מוצרים)
-st.sidebar.header("Adjust Expense Distribution")
+# מחוונים לחלוקת הוצאות
+st.sidebar.header("Adjust Expense Proportions")
 fuel_percent = st.sidebar.slider("Fuel (%)", 0, 100, 30)
 rent_percent = st.sidebar.slider("Rent (%)", 0, 100, 50)
 products_percent = st.sidebar.slider("Basic Products (%)", 0, 100, 20)
@@ -24,31 +21,37 @@ total_percent = fuel_percent + rent_percent + products_percent
 if total_percent != 100:
     st.error("The total percentage must equal 100%!")
 else:
-    # חישוב הוצאות לפי החלוקה
-    total_expenses = (
-        (df['Total Expenses'][0] * fuel_percent / 100) +
-        (df['Total Expenses'][0] * rent_percent / 100) +
-        (df['Total Expenses'][0] * products_percent / 100)
+    # חישוב הוצאות מותאמות
+    df['Adjusted Expenses'] = df['Total Expenses'] * (
+        (fuel_percent / 100) + (rent_percent / 100) + (products_percent / 100)
     )
 
-    # חישוב הפער
-    balance = df['Minimum Wage'][0] - total_expenses
+    # חישוב חיסכון
+    df['Savings'] = df['Minimum Wage'] - df['Adjusted Expenses']
 
-    # גרף עוגה (Pie Chart)
-    labels = ['Fuel', 'Rent', 'Basic Products']
-    sizes = [fuel_percent, rent_percent, products_percent]
-    fig1, ax1 = plt.subplots()
-    ax1.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=90)
-    ax1.set_title("Expense Distribution")
-    st.pyplot(fig1)
+    # גרף קווי
+    st.title("Savings vs. Income and Expenses")
+    fig, ax = plt.subplots()
+    ax.plot(df['Year'], df['Minimum Wage'], label='Minimum Wage (Income)', color='blue')
+    ax.plot(df['Year'], df['Adjusted Expenses'], label='Adjusted Expenses', color='red')
+    ax.plot(df['Year'], df['Savings'], label='Savings', color='green', linestyle='--')
 
-    # תצוגה של הפער
-    st.metric("Balance (Surplus/Deficit)", f"{balance:.2f} NIS")
+    # כותרות וצירים
+    ax.set_title("Savings Over Time")
+    ax.set_xlabel("Year")
+    ax.set_ylabel("NIS")
+    ax.legend()
 
-    # גרף קווי המציג את הפער
-    fig2, ax2 = plt.subplots()
-    ax2.axhline(0, color='black', linestyle='--')  # קו בסיס
-    ax2.bar(['Balance'], [balance], color='green' if balance > 0 else 'red')
-    ax2.set_title("Income vs. Expenses Balance")
-    ax2.set_ylabel("NIS")
-    st.pyplot(fig2)
+    # הצגת הגרף
+    st.pyplot(fig)
+
+    # טבלה אינטראקטיבית להצגת הנתונים
+    st.subheader("Data Table")
+    st.dataframe(df)
+
+    # השוואת חיסכון לפי שנה
+    st.subheader("Savings Comparison by Year")
+    selected_year = st.selectbox("Select a Year:", df['Year'])
+    selected_data = df[df['Year'] == selected_year]
+    st.metric("Savings in Selected Year", f"{selected_data['Savings'].values[0]:.2f} NIS")
+
