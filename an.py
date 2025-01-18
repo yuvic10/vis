@@ -1,68 +1,70 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
+import seaborn as sns
 import matplotlib.pyplot as plt
 
-# Example dataset
-data = {
-    'Year': [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023],
-    'Wage': [4650, 4825, 5000, 5300, 5300, 5300, 5300, 5571.75, 5880.02],
-    'Fuel': [6.1, 6.3, 6.5, 6.6, 6.7, 6.8, 7.0, 7.2, 7.5],
-    'Rent': [3000, 3100, 3200, 3300, 3400, 3500, 3600, 3800, 4000],
-    'Groceries': [1500, 1550, 1600, 1650, 1700, 1750, 1800, 1900, 2000]
-}
+# נתונים לדוגמה
+years = list(range(2010, 2023))
+categories = ['Fuel', 'Rent', 'Products']
 
-# Convert to DataFrame
-df = pd.DataFrame(data)
+# מחירים אמיתיים ומדומים לדוגמה
+actual_prices = pd.DataFrame({
+    'Year': years,
+    'Fuel': np.random.randint(100, 200, len(years)),
+    'Rent': np.random.randint(500, 800, len(years)),
+    'Products': np.random.randint(50, 150, len(years))
+})
+wage_growth = np.linspace(1.02, 1.05, len(years))  # אחוזי עליית שכר לדוגמה
 
-# Function to calculate adjusted prices based on wage growth
-def calculate_adjusted_prices(df, category, wage_growth_rate):
-    adjusted_prices = [df[category].iloc[0]]
-    for i in range(1, len(df)):
-        adjusted_price = adjusted_prices[-1] * (1 + wage_growth_rate / 100)
-        adjusted_prices.append(adjusted_price)
-    return adjusted_prices
+# יצירת מחירים מדומים בהתבסס על השכר
+predicted_prices = actual_prices.copy()
+for col in categories:
+    predicted_prices[col] = predicted_prices[col].iloc[0] * np.cumprod(wage_growth)
 
-# Streamlit layout
-st.title("Income vs. Prices Dashboard")
-st.sidebar.header("Controls")
+# פונקציה לחישוב היחס בין המחירים
+def calculate_difference(actual, predicted):
+    return (actual - predicted) / predicted
 
-# Select category
-default_categories = ['Fuel', 'Rent', 'Groceries']
-selected_categories = st.sidebar.multiselect("Select categories to display:", default_categories, default=default_categories)
+# חישוב הפערים
+differences = actual_prices.set_index('Year')[categories].subtract(
+    predicted_prices.set_index('Year')[categories]
+)
+relative_differences = calculate_difference(actual_prices.set_index('Year'), 
+                                            predicted_prices.set_index('Year'))
 
-# Wage growth rate slider
-wage_growth_rate = st.sidebar.slider("Set Wage Growth Rate (% per year):", min_value=1.0, max_value=10.0, value=3.0, step=0.1)
+# ממשק Streamlit
+st.title("Comparison Between Actual and Projected Prices")
+st.sidebar.title("Settings")
 
-# Plot the data
+# בחירת קטגוריה
+selected_categories = st.sidebar.multiselect("Select Categories", categories, default=categories)
+growth_rate = st.sidebar.slider("Set Wage Growth Rate (%)", 1, 10, 3) / 100
+years_selected = st.sidebar.slider("Select Year Range", min_value=min(years), max_value=max(years), value=(min(years), max(years)))
+
+# סינון נתונים לפי שנים נבחרות
+filtered_actual = actual_prices[(actual_prices['Year'] >= years_selected[0]) & 
+                                (actual_prices['Year'] <= years_selected[1])]
+filtered_predicted = predicted_prices[(predicted_prices['Year'] >= years_selected[0]) & 
+                                      (predicted_prices['Year'] <= years_selected[1])]
+filtered_differences = relative_differences[(relative_differences.index >= years_selected[0]) & 
+                                            (relative_differences.index <= years_selected[1])]
+
+# הצגת מפה
+st.subheader("Heatmap of Price Differences")
+heatmap_data = filtered_differences[selected_categories]
 fig, ax = plt.subplots(figsize=(10, 6))
-
-for category in selected_categories:
-    # Real prices
-    ax.plot(df['Year'], df[category], label=f"{category} (Real)", linestyle='-', marker='o')
-
-    # Adjusted prices
-    adjusted_prices = calculate_adjusted_prices(df, category, wage_growth_rate)
-    ax.plot(df['Year'], adjusted_prices, label=f"{category} (Adjusted)", linestyle='--')
-
-# Add wage line
-ax.plot(df['Year'], df['Wage'], label="Wage", color='blue', linewidth=2, linestyle='-')
-
-# Customize plot
-ax.set_title("Comparison of Real vs. Adjusted Prices", fontsize=16)
-ax.set_xlabel("Year", fontsize=12)
-ax.set_ylabel("Amount (NIS)", fontsize=12)
-ax.legend(loc='upper left', fontsize=10)
-ax.grid(True, linestyle='--', alpha=0.6)
-
-# Display plot
+sns.heatmap(heatmap_data, annot=True, fmt=".2f", cmap="RdYlGn", ax=ax, cbar_kws={'label': 'Difference'})
+ax.set_title("Relative Price Differences (Actual vs Projected)")
 st.pyplot(fig)
 
-# Explanation text
-st.markdown("""
-### Insights:
-- **Blue Line**: Represents the minimum wage across the years.
-- **Solid Lines**: Represent the real prices of selected categories.
-- **Dashed Lines**: Show the adjusted prices if they followed the selected wage growth rate.
-
-Use the controls on the left to adjust the growth rate or toggle categories.
-""")
+# הצגת גרף קווי (אם לחצו על שנה)
+selected_year = st.sidebar.selectbox("Select Year to Drill Down", years)
+if selected_year:
+    st.subheader(f"Yearly Comparison for {selected_year}")
+    yearly_data = pd.DataFrame({
+        'Category': categories,
+        'Actual': filtered_actual[filtered_actual['Year'] == selected_year][categories].values[0],
+        'Projected': filtered_predicted[filtered_predicted['Year'] == selected_year][categories].values[0]
+    }).set_index('Category')
+    st.bar_chart(yearly_data)
