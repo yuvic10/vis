@@ -5,5 +5,4 @@ folium
 streamlit_folium 
 seaborn
 wordcloud
-tempfile
-os
+pillow
