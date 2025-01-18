@@ -29,7 +29,7 @@ for i, product in enumerate(data["product"]):
     for j, year in enumerate(data["year"]):
         products.append(product)
         years.append(year)
-        prices.append(data["price"][i])
+        prices.append(data["price"][i][j])
 
 df = pd.DataFrame({"product": products, "year": years, "price": prices})
 
@@ -40,8 +40,15 @@ st.title("Real vs Simulated Prices for Selected Products")
 wage_growth_rate = st.slider("Select Wage Growth Rate (%)", 0, 10, 3)
 
 # חישוב מחיר מדומה
+def calculate_simulated_price(group, rate):
+    start_price = group.iloc[0]
+    simulated_prices = [start_price]
+    for i in range(1, len(group)):
+        simulated_prices.append(simulated_prices[-1] * (1 + rate / 100))
+    return simulated_prices
+
 df["simulated_price"] = df.groupby("product")["price"].transform(
-    lambda x: x.iloc[0] * ((1 + wage_growth_rate / 100) ** (x.index - x.index.min()))
+    lambda x: calculate_simulated_price(x, wage_growth_rate)
 )
 
 # בחירת מוצר להצגה
@@ -52,8 +59,19 @@ product_data = df[df["product"] == selected_product]
 
 # הצגת גרף מגמה
 plt.figure(figsize=(10, 6))
-plt.plot(product_data["year"], product_data["price"], label="Real Price", marker="o")
-plt.plot(product_data["year"], product_data["simulated_price"], label="Simulated Price", marker="o", linestyle="--")
+plt.plot(
+    product_data["year"], 
+    product_data["price"], 
+    label="Real Price", 
+    marker="o"
+)
+plt.plot(
+    product_data["year"], 
+    product_data["simulated_price"], 
+    label="Simulated Price", 
+    marker="o", 
+    linestyle="--"
+)
 plt.title(f"Real vs Simulated Prices for {selected_product}")
 plt.xlabel("Year")
 plt.ylabel("Price")
