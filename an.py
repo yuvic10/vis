@@ -1,50 +1,43 @@
 import streamlit as st
-import pandas as pd
+from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
-# נתוני דוגמה
-years = [2017, 2018, 2019, 2020, 2021, 2022, 2023]
-
-products = {
-    "Flour": [4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0],
-    "Milk": [5.0, 5.8, 6.6, 7.5, 8.5, 9.5, 10.5],
-    "Eggs": [10.0, 11.5, 13.0, 14.5, 16.0, 17.5, 19.0],
-    "Cheese": [15.0, 17.5, 20.0, 22.5, 25.0, 27.5, 30.0],
+# נתונים לדוגמה: אחוזי סל הקניות מהמשכורת לאורך השנים
+year_data = {
+    2015: 2,
+    2016: 3,
+    2017: 4,
+    2018: 3,
+    2019: 5,
+    2020: 6,
+    2021: 4,
+    2022: 5,
+    2023: 7
 }
 
 # ממשק Streamlit
-st.title("Shopping Basket Trends Over the Years")
-st.write("Select products to see their cumulative price trends over the years.")
+st.title("Word Cloud of Years Based on Shopping Basket Percentage")
+st.write("Select a threshold percentage to filter the years shown.")
 
-# בחירת מוצרים
-selected_products = st.multiselect(
-    "Select products to add to the basket:",
-    options=list(products.keys()),
-    default=[]
-)
+# בחירת סף אחוזים
+threshold = st.slider("Select Threshold Percentage", min_value=1, max_value=10, value=3)
 
-# חישוב עלויות סל הקניות
-if selected_products:
-    basket_prices = [sum([products[prod][i] for prod in selected_products]) for i in range(len(years))]
+# סינון שנים לפי סף
+filtered_years = {year: value for year, value in year_data.items() if value >= threshold}
 
-    # יצירת DataFrame
-    data = pd.DataFrame({
-        "Year": years,
-        "Basket Price": basket_prices
-    })
+# בדיקה אם יש שנים להצגה
+if filtered_years:
+    # יצירת ענן מילים
+    wordcloud = WordCloud(
+        width=800, height=400,
+        background_color='white'
+    ).generate_from_frequencies(filtered_years)
 
-    # גרף מגמה
-    st.subheader("Trend: Basket Price Over the Years")
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(data["Year"], data["Basket Price"], marker="o", label="Basket Price", color="blue")
-    ax.set_title("Basket Price Trends Over the Years")
-    ax.set_ylabel("Price (₪)")
-    ax.set_xlabel("Year")
-    ax.legend()
+    # הצגת ענן המילים
+    st.subheader("Filtered Word Cloud")
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.imshow(wordcloud, interpolation='bilinear')
+    ax.axis('off')
     st.pyplot(fig)
-
-    # הצגת טבלה
-    st.subheader("Basket Price Details")
-    st.table(data)
 else:
-    st.warning("Please select at least one product to see the results.")
+    st.warning("No years match the selected threshold.")
