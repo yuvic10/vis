@@ -19,7 +19,7 @@ data = {
 df = pd.DataFrame(data)
 
 # Streamlit app setup
-st.title("Yearly Financial Breakdown: Expenses vs. Savings")
+st.title("Yearly Financial Analysis")
 st.sidebar.header("Visualization Options")
 
 # Select year range
@@ -31,22 +31,20 @@ start_year, end_year = st.sidebar.slider(
     step=1
 )
 
-# Filter data by the selected year range
 filtered_df = df[(df["Year"] >= start_year) & (df["Year"] <= end_year)]
 
-# Generate pie charts for the selected years
-st.header("Pie Charts for Selected Years")
-columns = st.columns(len(filtered_df))
+# Stacked Bar Chart
+st.header("Stacked Bar Chart of Expenses and Savings")
+fig, ax = plt.subplots(figsize=(10, 6))
 
-for idx, (col, row) in enumerate(zip(columns, filtered_df.iterrows())):
-    _, row_data = row
-    fig, ax = plt.subplots(figsize=(4, 4))
-    ax.pie(
-        [row_data["Expenses"], row_data["Savings"]],
-        labels=["Expenses", "Savings"],
-        autopct="%1.1f%%",
-        colors=["red", "green"],
-        startangle=90,
-    )
-    ax.set_title(f"Year {int(row_data['Year'])}")
-    col.pyplot(fig)
+# Plotting the stacked bars
+ax.bar(filtered_df["Year"], filtered_df["Expenses"], label="Expenses", color="red")
+ax.bar(filtered_df["Year"], filtered_df["Savings"], bottom=filtered_df["Expenses"], label="Savings", color="green")
+
+# Chart labels and legend
+ax.set_title("Yearly Expenses and Savings")
+ax.set_xlabel("Year")
+ax.set_ylabel("Amount (NIS)")
+ax.legend()
+
+st.pyplot(fig)
