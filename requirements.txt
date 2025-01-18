@@ -4,3 +4,4 @@ matplotlib
 folium
 streamlit_folium 
 seaborn
+wordcloud
