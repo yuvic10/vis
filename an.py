@@ -20,24 +20,20 @@ try:
         # חישוב המחיר הכולל של הסל לאורך השנים
         basket_prices = data[data["product"].isin(selected_products)].groupby("year")["yearly average price"].sum()
 
-        # הגדרת מינימום ומקסימום דינמיים עבור ה-slider
+        # הגדלת הערך המקסימלי עבור הסף ב-10%
         min_dynamic_price = int(basket_prices.min())
-        max_dynamic_price = int(basket_prices.max())
+        max_dynamic_price = int(basket_prices.max() * 1.1)  # העלאה של 10%
 
         # בחירת תקרת מחיר עם טווח דינמי
         max_price = st.slider(
             "Set Maximum Basket Price",
             min_value=min_dynamic_price,
             max_value=max_dynamic_price,
-            value=min_dynamic_price
+            value=max_dynamic_price
         )
 
         # סינון שנים לפי תקרת המחיר
         filtered_years = {str(year): price for year, price in basket_prices.items() if price <= max_price}
-
-        # הוספת 2024 אם לא נכללה בסינון
-        if "2024" not in filtered_years and 2024 in basket_prices.index:
-            filtered_years["2024"] = basket_prices[2024]
 
         # בדיקה אם יש שנים להצגה
         if filtered_years:
