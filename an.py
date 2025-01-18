@@ -2,6 +2,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from matplotlib.animation import FuncAnimation
+import streamlit as st
+import tempfile
 
 # נתוני הדוגמה
 years = list(range(2015, 2024))
@@ -31,5 +33,10 @@ def update(frame):
 # יצירת אנימציה
 ani = FuncAnimation(fig, update, frames=len(years), interval=500, repeat=False)
 
-# הצגת הגרף
-plt.show()
+# שמירת האנימציה כקובץ וידאו זמני
+temp_video = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
+ani.save(temp_video.name, writer="ffmpeg", fps=2)
+
+# הצגת האנימציה ב-Streamlit
+st.title("אנימציה של מחירי הסל לאורך השנים")
+st.video(temp_video.name)
