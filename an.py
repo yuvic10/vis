@@ -1,54 +1,55 @@
 import streamlit as st
-import folium
-from streamlit_folium import folium_static
+import matplotlib.pyplot as plt
+import numpy as np
 
-# רשימת שנים ומספר מוצרים שנוספו בכל שנה
+# נתונים
 years = list(range(2015, 2025))
 products_per_year = [0] * len(years)  # התחל עם 0 מוצרים לכל שנה
 
 # ממשק Streamlit
-st.title("Map with Changing Colors Over Years")
-st.write("Add products for each year and see the color intensity change on the map.")
+st.title("Puzzle Visualization of Years")
+st.write("Add products for each year to see the puzzle pieces fill with color.")
 
-# מחוון לבחירת שנה
+# בחירת שנה לעדכון
 selected_year_index = st.slider("Select a year", 0, len(years) - 1, 0)
 selected_year = years[selected_year_index]
 
-# הוספת מוצרים לשנה הנוכחית
+# הוספת מוצרים לשנה הנבחרת
 products_to_add = st.number_input(
     f"Add products for {selected_year}", min_value=0, value=0, step=1
 )
 products_per_year[selected_year_index] += products_to_add
 
-# צביעת המפה בהתאם למספר המוצרים
+# חישוב מקסימום עבור נורמליזציה של הצבעים
 max_products = max(products_per_year)
-min_products = min(products_per_year)
 
-# יצירת מפה עם Folium
-m = folium.Map(location=[31.0461, 34.8516], zoom_start=6)  # מרכז את המפה לישראל
+# יצירת הפאזל
+fig, ax = plt.subplots(figsize=(10, 5))
 
-# מחזור דרך השנים ליצירת מעגלים
 for i, year in enumerate(years):
+    # חישוב צבע על בסיס מספר המוצרים
     normalized_value = (
-        (products_per_year[i] - min_products) / (max_products - min_products)
-        if max_products > 0
-        else 0
+        products_per_year[i] / max_products if max_products > 0 else 0
     )
-    color = f"#{int(255 * (1 - normalized_value)):02x}{int(255 * normalized_value):02x}00"
+    color = (1 - normalized_value, normalized_value, 0)  # צבעים בין ירוק לאדום
 
-    folium.CircleMarker(
-        location=[31.0461, 34.8516],  # ישראל
-        radius=15,
-        color=color,
-        fill=True,
-        fill_color=color,
-        fill_opacity=0.7,
-        tooltip=f"Year: {year}, Products: {products_per_year[i]}",
-    ).add_to(m)
+    # יצירת ריבוע לכל שנה
+    rect = plt.Rectangle((i, 0), 1, 1, color=color, ec="black")
+    ax.add_patch(rect)
 
-# הצגת המפה
-folium_static(m)
+    # הוספת טקסט
+    ax.text(
+        i + 0.5, 0.5, str(year), ha="center", va="center", fontsize=12, color="white"
+    )
 
-# הצגת נתוני המוצרים
+# התאמת הצירים
+ax.set_xlim(0, len(years))
+ax.set_ylim(0, 1)
+ax.axis("off")  # הסתרת הצירים
+
+# הצגת הפאזל
+st.pyplot(fig)
+
+# הצגת טבלה עם הנתונים
 st.write("Products added per year:")
 st.table({"Year": years, "Products": products_per_year})
