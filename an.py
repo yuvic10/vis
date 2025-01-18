@@ -20,10 +20,6 @@ try:
         # חישוב המחיר הכולל של הסל לאורך השנים
         basket_prices = data[data["product"].isin(selected_products)].groupby("year")["yearly average price"].sum()
 
-        # הצגת מחירי הסל לכל שנה
-        st.write("### Basket Prices by Year")
-        st.table(basket_prices.reset_index().rename(columns={"year": "Year", "yearly average price": "Basket Price"}))
-
         # הגדרת מינימום ומקסימום דינמיים עבור ה-slider
         min_dynamic_price = int(basket_prices.min())
         max_dynamic_price = int(basket_prices.max())
@@ -55,6 +51,10 @@ try:
             st.pyplot(fig)
         else:
             st.warning("No years match the selected basket and price criteria.")
+
+        # הצגת מחירי הסל לכל שנה מתחת לנתוני ענן המילים
+        st.write("### Basket Prices by Year")
+        st.table(basket_prices.reset_index().rename(columns={"year": "Year", "yearly average price": "Basket Price"}))
     else:
         st.info("Please select products to see the analysis.")
 
