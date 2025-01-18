@@ -1,63 +1,46 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 
-# נתונים בסיסיים: מוצרים ומחיריהם לאורך השנים
-products = {
-    "Milk": [5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
-    "Bread": [3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5],
-    "Eggs": [10, 12, 14, 16, 18, 20, 22, 24, 26, 28],
-    "Rice": [8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5],
-    "Oil": [15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
-}
+# נתוני שנים והוצאות (נתון בסיסי להמחשה)
 years = list(range(2015, 2025))
-
-# ממשק Streamlit
-st.title("Shopping Basket Visualization Over Time")
-st.write("Choose products to add to your basket. The colors of the years will change based on the basket's price.")
-
-# בחירת מוצרים
-selected_products = st.multiselect("Select products for your basket:", products.keys())
-
-# חישוב מחיר הסל לכל שנה
-basket_prices = [0] * len(years)
-for product in selected_products:
-    prices = products[product]
-    basket_prices = [basket_prices[i] + prices[i] for i in range(len(years))]
-
-# חישוב מקסימום לנורמליזציה של הצבעים
+basket_prices = [1000, 1200, 1500, 2000, 2300, 2500, 2700, 3000, 3500, 4000]
 max_price = max(basket_prices)
 
-# יצירת הפאזל
-fig, ax = plt.subplots(figsize=(10, 2))
+# ממשק Streamlit
+st.title("Dynamic Year Visualization")
+st.write("Each bubble represents a year. The size of the bubble changes based on the basket price. Add items to the basket to see the impact.")
+
+# הוספת מוצרים
+products = {
+    "Milk": 5,
+    "Bread": 3,
+    "Eggs": 10,
+    "Rice": 8,
+    "Oil": 15
+}
+
+selected_products = st.multiselect("Select products to add to your basket:", products.keys())
+
+# חישוב סל קניות
+additional_cost = sum([products[product] for product in selected_products])
+adjusted_prices = [price + additional_cost for price in basket_prices]
+
+# יצירת Bubble Chart
+fig, ax = plt.subplots(figsize=(10, 6))
 
 for i, year in enumerate(years):
-    # חישוב הצבע על בסיס מחיר הסל
-    normalized_value = basket_prices[i] / max_price if max_price > 0 else 0
-    color = (1 - normalized_value, normalized_value, 0)  # צבע משתנה מירוק לאדום
+    size = (adjusted_prices[i] / max_price) * 2000  # שינוי גודל הבועות
+    ax.scatter(year, 1, s=size, alpha=0.6, label=f"{year}: ${adjusted_prices[i]}")
+    ax.text(year, 1.1, str(year), fontsize=10, ha='center')
 
-    # ציור ריבוע לכל שנה
-    rect = plt.Rectangle((i, 0), 1, 1, color=color, ec="black")
-    ax.add_patch(rect)
+ax.set_xlim(min(years) - 1, max(years) + 1)
+ax.set_ylim(0.5, 1.5)
+ax.axis("off")
+ax.set_title("Bubble Chart of Years Based on Basket Price", fontsize=14)
 
-    # הוספת טקסט (שנה ומחיר הסל)
-    ax.text(
-        i + 0.5,
-        0.5,
-        f"{year}\n${basket_prices[i]:.2f}",
-        ha="center",
-        va="center",
-        fontsize=10,
-        color="white",
-    )
-
-# התאמת הצירים
-ax.set_xlim(0, len(years))
-ax.set_ylim(0, 1)
-ax.axis("off")  # הסתרת הצירים
-
-# הצגת הפאזל
+# הצגת הגרף
 st.pyplot(fig)
 
-# הצגת נתונים
-st.write("Basket prices per year:")
-st.table({"Year": years, "Basket Price": basket_prices})
+# הצגת טבלה להמחשה
+st.write("Adjusted Basket Prices:")
+st.table({"Year": years, "Price": adjusted_prices})
