@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 # יצירת נתונים לדוגמה
 data = {
@@ -13,11 +14,12 @@ data = {
 # המרת הנתונים ל-DataFrame
 df = pd.DataFrame(data)
 
-# חישוב החיסכון (הכנסה פחות סך ההוצאות)
-df["Savings"] = df["Income"] - (df["Rent"] + df["Products"])
+# חישוב הוצאות כלליות וחיסכון
+df["Total Expenses"] = df["Rent"] + df["Products"]
+df["Savings"] = df["Income"] - df["Total Expenses"]
 
 # כותרת האפליקציה
-st.title("היסטוגרמה של החיסכון לאורך השנים")
+st.title("היסטוגרמה של הכנסות, הוצאות וחיסכון לאורך השנים")
 
 # בחירת טווח שנים להצגה
 year_range = st.slider(
@@ -30,16 +32,37 @@ year_range = st.slider(
 # סינון הנתונים לפי טווח השנים
 filtered_df = df[(df["Year"] >= year_range[0]) & (df["Year"] <= year_range[1])]
 
-# יצירת היסטוגרמה
+# יצירת גרף היסטוגרמה
 fig, ax = plt.subplots()
-ax.bar(filtered_df["Year"], filtered_df["Savings"], color="skyblue", edgecolor="black")
-ax.set_xlabel("Year")
-ax.set_ylabel("Savings (Income - Expenses)")
-ax.set_title("Histogram of Savings Over the Years")
 
-# הצגת ההיסטוגרמה
+bar_width = 0.4
+x = np.arange(len(filtered_df["Year"]))
+
+# גרף הכנסות
+ax.bar(x - bar_width / 2, filtered_df["Income"], bar_width, label="Income", color="skyblue", edgecolor="black")
+
+# גרף הוצאות
+ax.bar(x + bar_width / 2, filtered_df["Total Expenses"], bar_width, label="Expenses", color="orange", edgecolor="black")
+
+# הוספת תוויות וטקסט
+ax.set_xlabel("Year")
+ax.set_ylabel("Amount (₪)")
+ax.set_title("Income vs. Expenses (and Savings)")
+ax.set_xticks(x)
+ax.set_xticklabels(filtered_df["Year"])
+ax.legend()
+
+# הצגת החיסכון כטקסט מעל העמודות
+for i in range(len(filtered_df)):
+    savings = filtered_df.iloc[i]["Savings"]
+    ax.text(
+        x[i], max(filtered_df.iloc[i]["Income"], filtered_df.iloc[i]["Total Expenses"]) + 100,
+        f"Saving: {savings:.2f}", ha="center", fontsize=8
+    )
+
+# הצגת הגרף באפליקציה
 st.pyplot(fig)
 
-# הצגת נתונים מסוננים
+# הצגת טבלה מסוננת
 st.subheader("נתונים מסוננים")
 st.dataframe(filtered_df)
