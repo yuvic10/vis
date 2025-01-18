@@ -1,63 +1,52 @@
 import streamlit as st
-import pandas as pd
+from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
-# יצירת נתונים לדוגמה
+# נתוני דוגמה: שנים וכמות (או תדירות) ששייכת לכל שנה
 data = {
-    "Year": [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023],
-    "Income": [4650, 4825, 5000, 5300, 5300, 5300, 5300, 5300, 5571.75],
-    "Rent": [2000, 2100, 2200, 2300, 2400, 2500, 2600, 2700, 2800],
-    "Products": [1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800],
+    "2015": 10,
+    "2016": 15,
+    "2017": 20,
+    "2018": 5,
+    "2019": 25,
+    "2020": 30,
+    "2021": 40,
+    "2022": 35,
+    "2023": 50
 }
 
-# המרת הנתונים ל-DataFrame
-df = pd.DataFrame(data)
+# פונקציה ליצירת WordCloud
+def create_wordcloud(data):
+    wordcloud = WordCloud(
+        width=800,
+        height=400,
+        background_color="white",
+        colormap="viridis"
+    ).generate_from_frequencies(data)
+    return wordcloud
 
 # כותרת לאפליקציה
-st.title("היסטוגרמה של הכנסות, הוצאות וחיסכון")
+st.title("השוואת שנים לפי תדירות הוספה לסל")
 
-# בחירת טווח שנים להצגה
-year_range = st.slider(
-    "בחר טווח שנים להצגה:",
-    min_value=int(df["Year"].min()),
-    max_value=int(df["Year"].max()),
-    value=(2015, 2023),
+# בחירה של שנים להוספה
+selected_years = st.multiselect(
+    "בחר שנים להוספה לסל:",
+    options=list(data.keys()),
+    default=["2015", "2016"]
 )
 
-# סינון הנתונים לפי טווח השנים
-filtered_df = df[(df["Year"] >= year_range[0]) & (df["Year"] <= year_range[1])]
+# חישוב סך הפרופורציה של השנים שנבחרו
+filtered_data = {year: data[year] for year in selected_years}
 
-# יצירת גרף היסטוגרמה
+# יצירת WordCloud
+wordcloud = create_wordcloud(filtered_data)
+
+# הצגת WordCloud
 fig, ax = plt.subplots(figsize=(10, 6))
-
-# שכבת הכנסות
-ax.bar(
-    filtered_df["Year"],
-    filtered_df["Income"],
-    label="Income",
-    color="skyblue",
-    edgecolor="black",
-)
-
-# שכבת הוצאות (שכירות + מוצרים)
-ax.bar(
-    filtered_df["Year"],
-    filtered_df["Rent"] + filtered_df["Products"],
-    label="Expenses (Rent + Products)",
-    color="orange",
-    edgecolor="black",
-    alpha=0.7,
-)
-
-# הוספת תוויות
-ax.set_xlabel("Year")
-ax.set_ylabel("Amount (₪)")
-ax.set_title("Income vs. Expenses Histogram")
-ax.legend()
-
-# הצגת הגרף ב-Streamlit
+ax.imshow(wordcloud, interpolation="bilinear")
+ax.axis("off")
 st.pyplot(fig)
 
 # הצגת טבלה
-st.subheader("נתונים מסוננים")
-st.dataframe(filtered_df)
+st.subheader("תדירות השנים שנבחרו")
+st.write(filtered_data)
