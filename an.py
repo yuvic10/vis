@@ -35,6 +35,10 @@ try:
         # סינון שנים לפי תקרת המחיר
         filtered_years = {str(year): price for year, price in basket_prices.items() if price <= max_price}
 
+        # הוספת 2024 אם לא נכללה בסינון
+        if "2024" not in filtered_years and 2024 in basket_prices.index:
+            filtered_years["2024"] = basket_prices[2024]
+
         # בדיקה אם יש שנים להצגה
         if filtered_years:
             # יצירת ענן מילים
