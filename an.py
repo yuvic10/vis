@@ -33,10 +33,10 @@ def update(frame):
 # יצירת אנימציה
 ani = FuncAnimation(fig, update, frames=len(years), interval=500, repeat=False)
 
-# שמירת האנימציה כקובץ וידאו זמני
-temp_video = tempfile.NamedTemporaryFile(delete=False, suffix=".mp4")
-ani.save(temp_video.name, writer="ffmpeg", fps=2)
+# שמירת האנימציה כקובץ GIF זמני
+temp_gif = tempfile.NamedTemporaryFile(delete=False, suffix=".gif")
+ani.save(temp_gif.name, writer="pillow", fps=2)
 
 # הצגת האנימציה ב-Streamlit
 st.title("אנימציה של מחירי הסל לאורך השנים")
-st.video(temp_video.name)
+st.image(temp_gif.name)
