@@ -5,17 +5,21 @@ import matplotlib.pyplot as plt
 # יצירת נתונים לדוגמה
 data = {
     "Year": [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023],
-    "Rent": [4650, 4825, 5000, 5300, 5300, 5300, 5300, 5300, 5571.75],
-    "Products": [20000, 21000, 22000, 23000, 24000, 25000, 26000, 27000, 28000]
+    "Income": [4650, 4825, 5000, 5300, 5300, 5300, 5300, 5300, 5571.75],
+    "Rent": [2000, 2100, 2200, 2300, 2400, 2500, 2600, 2700, 2800],
+    "Products": [1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700, 1800]
 }
 
 # המרת הנתונים ל-DataFrame
 df = pd.DataFrame(data)
 
-# כותרת האפליקציה
-st.title("השוואת מחירי שכירות ומוצרים לאורך השנים")
+# חישוב החיסכון (הכנסה פחות סך ההוצאות)
+df["Savings"] = df["Income"] - (df["Rent"] + df["Products"])
 
-# הצגת טווח בחירה לשנים
+# כותרת האפליקציה
+st.title("היסטוגרמה של החיסכון לאורך השנים")
+
+# בחירת טווח שנים להצגה
 year_range = st.slider(
     "בחר את טווח השנים להצגה:",
     min_value=int(df["Year"].min()),
@@ -23,21 +27,19 @@ year_range = st.slider(
     value=(2015, 2023)
 )
 
-# סינון נתונים לפי טווח השנים
+# סינון הנתונים לפי טווח השנים
 filtered_df = df[(df["Year"] >= year_range[0]) & (df["Year"] <= year_range[1])]
 
-# יצירת גרף
+# יצירת היסטוגרמה
 fig, ax = plt.subplots()
-ax.plot(filtered_df["Year"], filtered_df["Rent"], label="Rent", marker="o", color="blue")
-ax.plot(filtered_df["Year"], filtered_df["Products"], label="Products", marker="o", color="green")
+ax.bar(filtered_df["Year"], filtered_df["Savings"], color="skyblue", edgecolor="black")
 ax.set_xlabel("Year")
-ax.set_ylabel("Price")
-ax.set_title("Comparison of Rent and Product Prices Over Years")
-ax.legend()
+ax.set_ylabel("Savings (Income - Expenses)")
+ax.set_title("Histogram of Savings Over the Years")
 
-# הצגת הגרף
+# הצגת ההיסטוגרמה
 st.pyplot(fig)
 
-# הצגת הנתונים בטבלה
+# הצגת נתונים מסוננים
 st.subheader("נתונים מסוננים")
 st.dataframe(filtered_df)
