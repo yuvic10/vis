@@ -1,55 +1,54 @@
 import streamlit as st
-import pandas as pd
 import folium
 from streamlit_folium import folium_static
 
-# נתונים לדוגמה: הוצאות לפי מדינה ושנה
-data = {
-    "Country": ["Israel", "USA", "Germany", "France", "UK"],
-    "Lat": [31.0461, 37.0902, 51.1657, 46.6034, 55.3781],
-    "Lon": [34.8516, -95.7129, 10.4515, 1.8883, -3.4360],
-    "2015": [5000, 10000, 12000, 11000, 11500],
-    "2016": [5200, 10500, 12300, 11300, 11700],
-    "2017": [5500, 11000, 12600, 11500, 12000],
-    "2018": [5800, 11500, 13000, 11800, 12200],
-    "2019": [6000, 12000, 13500, 12200, 12500],
-    "2020": [6200, 12500, 14000, 12500, 12800],
-}
+# רשימת שנים ומספר מוצרים שנוספו בכל שנה
+years = list(range(2015, 2025))
+products_per_year = [0] * len(years)  # התחל עם 0 מוצרים לכל שנה
 
-# המרת הנתונים ל-DataFrame
-df = pd.DataFrame(data)
+# ממשק Streamlit
+st.title("Map with Changing Colors Over Years")
+st.write("Add products for each year and see the color intensity change on the map.")
 
-# יצירת תפריט בחירה לשנה
-st.title("Dynamic Expense Map")
-selected_year = st.selectbox("Select a year", [str(year) for year in range(2015, 2021)])
+# מחוון לבחירת שנה
+selected_year_index = st.slider("Select a year", 0, len(years) - 1, 0)
+selected_year = years[selected_year_index]
 
-# מינימום ומקסימום להוצאות באותה שנה
-min_expense = df[selected_year].min()
-max_expense = df[selected_year].max()
+# הוספת מוצרים לשנה הנוכחית
+products_to_add = st.number_input(
+    f"Add products for {selected_year}", min_value=0, value=0, step=1
+)
+products_per_year[selected_year_index] += products_to_add
 
-# יצירת מפה עם folium
-m = folium.Map(location=[20, 0], zoom_start=2)
+# צביעת המפה בהתאם למספר המוצרים
+max_products = max(products_per_year)
+min_products = min(products_per_year)
 
-# הוספת מעגלים למפה
-for _, row in df.iterrows():
-    expense = row[selected_year]
-    
-    # Normalize the value for color scaling
-    normalized_value = (expense - min_expense) / (max_expense - min_expense)
-    
-    # Map normalized value to color
+# יצירת מפה עם Folium
+m = folium.Map(location=[31.0461, 34.8516], zoom_start=6)  # מרכז את המפה לישראל
+
+# מחזור דרך השנים ליצירת מעגלים
+for i, year in enumerate(years):
+    normalized_value = (
+        (products_per_year[i] - min_products) / (max_products - min_products)
+        if max_products > 0
+        else 0
+    )
     color = f"#{int(255 * (1 - normalized_value)):02x}{int(255 * normalized_value):02x}00"
 
-    # הוספת מעגל
     folium.CircleMarker(
-        location=[row["Lat"], row["Lon"]],
-        radius=10,
+        location=[31.0461, 34.8516],  # ישראל
+        radius=15,
         color=color,
         fill=True,
         fill_color=color,
         fill_opacity=0.7,
-        tooltip=f"{row['Country']}: {expense} USD",
+        tooltip=f"Year: {year}, Products: {products_per_year[i]}",
     ).add_to(m)
 
-# הצגת המפה ב-Streamlit
+# הצגת המפה
 folium_static(m)
+
+# הצגת נתוני המוצרים
+st.write("Products added per year:")
+st.table({"Year": years, "Products": products_per_year})
