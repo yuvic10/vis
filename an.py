@@ -1,44 +1,60 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
+import numpy as np
 import seaborn as sns
+import matplotlib.pyplot as plt
 
-# נתונים לדוגמה
-years = [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023]
-base_prices = {
-    "Flour": [4.0, 4.1, 4.2, 4.3, 4.4, 4.5, 4.6, 4.7, 4.8],
-    "Rice": [8.0, 8.1, 8.3, 8.5, 8.6, 8.8, 9.0, 9.2, 9.3],
-    "Milk": [5.0, 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8],
-    "Chicken": [15.0, 15.2, 15.5, 15.8, 16.0, 16.3, 16.6, 16.8, 17.0]
+# נתוני דוגמה
+years = [2017, 2018, 2019, 2020, 2021, 2022, 2023]
+salary = [5000, 5100, 5200, 5300, 5400, 5500, 5600]  # משכורת חודשית
+products = {
+    "Flour": [4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0],
+    "Milk": [5.0, 5.8, 6.6, 7.5, 8.5, 9.5, 10.5],
+    "Eggs": [10.0, 11.5, 13.0, 14.5, 16.0, 17.5, 19.0],
+    "Cheese": [15.0, 17.5, 20.0, 22.5, 25.0, 27.5, 30.0],
 }
 
-# יצירת DataFrame לנתונים
-data = []
-for product, prices in base_prices.items():
-    for year, price in zip(years, prices):
-        data.append({"Product": product, "Year": year, "Price": price})
+# חישוב סל קניות חודשי
+monthly_basket_prices = [sum([products[prod][i] for prod in products]) for i in range(len(years))]
+# חישוב עלות שנתית של סל הקניות (4 פעמים בחודש)
+annual_basket_prices = [price * 4 * 12 for price in monthly_basket_prices]
 
-df = pd.DataFrame(data)
+# חישוב אחוז מהמשכורת
+annual_salaries = [sal * 12 for sal in salary]
+percentage_of_salary = [round((basket / salary) * 100, 2) for basket, salary in zip(annual_basket_prices, annual_salaries)]
 
-# כותרת ראשית
-st.title("Boxplot: טווח מחירים והשפעת הוספת מוצרים")
+# יצירת DataFrame
+data = pd.DataFrame({
+    "Year": years,
+    "Annual Basket Price": annual_basket_prices,
+    "Annual Salary": annual_salaries,
+    "Percentage of Salary": percentage_of_salary
+})
 
-# בחירת מוצרים לסל
-selected_products = st.multiselect("בחר מוצרים להוסיף לסל", list(base_prices.keys()), default=list(base_prices.keys()))
+# כותרת
+st.title("Impact of Shopping Basket Costs on Salaries Over the Years")
 
-# סינון נתונים לפי בחירת המשתמש
-filtered_df = df[df["Product"].isin(selected_products)]
+# גרף Boxplot
+st.subheader("Boxplot: Comparison of Annual Basket Price and Salary")
+fig, ax = plt.subplots(figsize=(10, 6))
+sns.boxplot(data=pd.melt(data, id_vars=["Year"], value_vars=["Annual Basket Price", "Annual Salary"]),
+            x="Year", y="value", hue="variable", ax=ax)
+ax.set_title("Boxplot of Annual Basket Price and Salary", fontsize=14)
+ax.set_ylabel("Value")
+ax.set_xlabel("Year")
+st.pyplot(fig)
 
-if filtered_df.empty:
-    st.error("בחר לפחות מוצר אחד כדי להציג את הנתונים!")
-else:
-    # יצירת Boxplot
-    fig, ax = plt.subplots(figsize=(12, 6))
-    sns.boxplot(x="Year", y="Price", data=filtered_df, ax=ax, palette="Set2")
-    
-    # פרטי גרף
-    ax.set_title("השפעת הוספת מוצרים על טווח המחירים לאורך השנים", fontsize=16)
-    ax.set_xlabel("שנים", fontsize=14)
-    ax.set_ylabel("מחיר", fontsize=14)
+# טבלת אחוזים
+st.subheader("Yearly Basket Cost as Percentage of Salary")
+st.table(data[["Year", "Percentage of Salary"]])
 
-    st.pyplot(fig)
+# גרף מגמה
+st.subheader("Trend: Basket Costs as Percentage of Salary")
+fig2, ax2 = plt.subplots(figsize=(10, 6))
+ax2.plot(data["Year"], data["Percentage of Salary"], marker="o", label="Percentage of Salary")
+ax2.set_title("Basket Costs as Percentage of Salary Over the Years", fontsize=14)
+ax2.set_ylabel("Percentage (%)")
+ax2.set_xlabel("Year")
+ax2.grid(True)
+ax2.legend()
+st.pyplot(fig2)
