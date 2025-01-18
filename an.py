@@ -1,46 +1,42 @@
 import streamlit as st
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
 
 # נתונים לדוגמה
-years = list(range(2015, 2024))
-base_prices = [100, 120, 140, 150, 170, 200, 230, 250, 270]
+years = [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023]
+base_prices = [1000, 1200, 1400, 1600, 1800, 2000, 2200, 2400, 2600]
 products = {
-    "Flour": 5,
-    "Rice": 8,
-    "Chicken": 20,
-    "Oil": 10,
-    "Milk": 6,
-    "Bread": 4,
-    "Eggs": 10,
-    "Tomatoes": 7,
+    "Flour": [1.0, 1.1, 1.2, 1.1, 1.3, 1.4, 1.5, 1.6, 1.7],
+    "Rice": [2.0, 2.2, 2.4, 2.3, 2.5, 2.7, 2.8, 2.9, 3.0],
+    "Milk": [0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6],
+    "Chicken": [5.0, 5.5, 6.0, 6.2, 6.5, 6.8, 7.0, 7.2, 7.5],
 }
 
-# פונקציה לחשב את המחירים
-def calculate_prices(selected_products):
-    total_prices = []
-    for i, base_price in enumerate(base_prices):
-        total_price = base_price + sum([products[prod] for prod in selected_products])
-        total_prices.append(total_price)
-    return total_prices
+# כותרת ראשית
+st.title("חלופה 1: פאזל שנים דינמי לסל קניות")
 
-# ממשק Streamlit
-st.sidebar.write("### Select products to add to the basket")
-selected_products = st.sidebar.multiselect("Products", list(products.keys()))
+# בחירת מוצרים לסל
+selected_products = st.multiselect("בחר מוצרים לסל", list(products.keys()), default=["Flour"])
 
-# חישוב מחירים
-total_prices = calculate_prices(selected_products)
+# חישוב מחירי סל
+total_prices = np.array(base_prices)
+for product in selected_products:
+    total_prices += np.array(products[product])
 
-# יצירת הגרף
-fig, ax = plt.subplots(figsize=(8, 6))
-sizes = np.array(total_prices) * 5  # שינוי לגודל ריבועים
-colors = plt.cm.viridis(np.linspace(0, 1, len(years)))
+# חישוב גודל לכל שנה
+max_price = max(total_prices)
+sizes = (total_prices / max_price) * 5000  # התאמת גודל
 
+# יצירת גרף
+fig, ax = plt.subplots(figsize=(10, 6))
+colors = plt.cm.viridis(total_prices / max_price)  # צבעים בהתאם למחירים
 for i, year in enumerate(years):
-    ax.scatter(i, 1, s=sizes[i], color=colors[i], label=f"{year}: ${total_prices[i]:.2f}")
+    ax.scatter(year, 0, s=sizes[i], color=colors[i], alpha=0.8, label=f"{year}: {total_prices[i]:.2f}₪")
 
-ax.set_xticks(range(len(years)))
-ax.set_xticklabels(years)
+# פרטי הגרף
+ax.set_title("התפלגות מחירים לאורך השנים")
+ax.set_xlabel("שנים")
 ax.set_yticks([])
-ax.legend(loc="upper left", bbox_to_anchor=(1, 1))
-ax.set_title("Yearly Basket Price Change")
+ax.legend(loc="upper left", bbox_to_anchor=(1.05, 1), title="שנה ומחיר")
 st.pyplot(fig)
