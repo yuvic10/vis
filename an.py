@@ -2,8 +2,6 @@ import streamlit as st
 import pandas as pd
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
-import matplotlib.cm as cm
-import matplotlib.colors as mcolors
 
 # URL של קובץ ה-Excel ב-GitHub
 file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_products.xlsx"
@@ -31,35 +29,28 @@ try:
             "Set Maximum Basket Price",
             min_value=min_dynamic_price,
             max_value=max_dynamic_price,
-            value=max_dynamic_price
+            value=min_dynamic_price
         )
 
         # סינון שנים לפי תקרת המחיר
         filtered_years = {str(year): price for year, price in basket_prices.items() if price <= max_price}
 
-        # יצירת מפה צבעונית לערכים
-        norm = mcolors.Normalize(vmin=min(basket_prices.values()), vmax=max(basket_prices.values()))
-        colormap = cm.get_cmap('viridis')
+        # בדיקה אם יש שנים להצגה
+        if filtered_years:
+            # יצירת ענן מילים
+            wordcloud = WordCloud(
+                width=800, height=400,
+                background_color='white'
+            ).generate_from_frequencies(filtered_years)
 
-        def color_func(word, font_size, position, orientation, random_state=None, **kwargs):
-            price = basket_prices[int(word)]
-            rgba_color = colormap(norm(price))
-            r, g, b, _ = rgba_color
-            return f"rgb({int(r*255)}, {int(g*255)}, {int(b*255)})"
-
-        # יצירת ענן מילים
-        wordcloud = WordCloud(
-            width=800, height=400,
-            background_color='white',
-            color_func=color_func
-        ).generate_from_frequencies(basket_prices.to_dict())
-
-        # הצגת ענן המילים
-        st.subheader("Years Where the Basket is Affordable")
-        fig, ax = plt.subplots(figsize=(10, 5))
-        ax.imshow(wordcloud, interpolation='bilinear')
-        ax.axis('off')
-        st.pyplot(fig)
+            # הצגת ענן המילים
+            st.subheader("Years Where the Basket is Affordable")
+            fig, ax = plt.subplots(figsize=(10, 5))
+            ax.imshow(wordcloud, interpolation='bilinear')
+            ax.axis('off')
+            st.pyplot(fig)
+        else:
+            st.warning("No years match the selected basket and price criteria.")
 
         # הצגת מחירי הסל לכל שנה מתחת לנתוני ענן המילים
         st.write("### Basket Prices by Year")
