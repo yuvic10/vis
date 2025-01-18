@@ -1,71 +1,56 @@
-import streamlit as st
-import pandas as pd
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
+import streamlit as st
 
-# נתוני השכר ומחירי הקטגוריות לאורך השנים
-data = {
-    "Year": [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023],
-    "Minimum Wage": [4650, 4825, 5000, 5300, 5300, 5300, 5300, 5571.75, 5880.02],
-    "Fuel Prices": [6.5, 6.7, 6.9, 7.0, 7.2, 7.3, 7.5, 8.0, 8.5],
-    "Rent Prices": [2000, 2100, 2200, 2400, 2500, 2600, 2700, 2900, 3100],
-    "Product Prices": [500, 520, 540, 560, 580, 600, 620, 650, 680]
+# יצירת נתונים לדוגמה
+np.random.seed(42)
+years = np.arange(2000, 2023)
+real_prices_fuel = np.cumsum(np.random.uniform(0.5, 1.5, len(years))) * 100
+real_prices_rent = np.cumsum(np.random.uniform(1.0, 2.0, len(years))) * 100
+real_prices_products = np.cumsum(np.random.uniform(0.3, 1.0, len(years))) * 100
+
+min_wages = np.cumsum(np.random.uniform(1.0, 2.0, len(years))) * 100
+avg_wage_growth = ((min_wages[-1] - min_wages[0]) / min_wages[0]) / len(years)
+
+# אפליקציית Streamlit
+st.title("Real vs. Simulated Prices with Wage Growth")
+
+# בחירת קטגוריה
+categories = {
+    "Fuel": real_prices_fuel,
+    "Rent": real_prices_rent,
+    "Products": real_prices_products
 }
+category = st.selectbox("Select a category:", list(categories.keys()))
 
-df = pd.DataFrame(data)
-
-# חישוב אחוז העלייה הממוצע בשכר המינימום במהלך השנים
-def calculate_growth_rate(df):
-    df["Wage Growth Rate"] = df["Minimum Wage"].pct_change() * 100
-    avg_growth_rate = df["Wage Growth Rate"].mean(skipna=True)
-    return avg_growth_rate
-
-# חישוב מחירים מדומים בהתבסס על קצב עליית השכר
-def calculate_adjusted_prices(df, custom_rate):
-    adjusted_prices = {}
-    for category in ["Fuel Prices", "Rent Prices", "Product Prices"]:
-        adjusted_prices[category] = [df[category].iloc[0]]
-        for i in range(1, len(df)):
-            adjusted_prices[category].append(adjusted_prices[category][i-1] * (1 + custom_rate / 100))
-    return pd.DataFrame(adjusted_prices)
-
-# קצב עלייה ממוצע בשכר המינימום
-avg_growth_rate = calculate_growth_rate(df)
-
-# הגדרות של Streamlit
-st.title("Real vs. Adjusted Prices Based on Wage Growth")
-st.sidebar.write("### Settings")
-
-# אפשרות לבחור קצב עלייה מותאם אישית
-custom_growth_rate = st.sidebar.slider("Select Wage Growth Rate (%)", min_value=0.0, max_value=10.0, value=avg_growth_rate)
-
-# אפשרות לבחור קטגוריה
-selected_categories = st.sidebar.multiselect(
-    "Select Categories to Display",
-    ["Fuel Prices", "Rent Prices", "Product Prices"],
-    default=["Fuel Prices", "Rent Prices", "Product Prices"]
-)
+# אחוז שינוי מותאם אישית
+custom_growth_rate = st.slider(
+    "Select custom wage growth rate (%):", min_value=0.0, max_value=10.0, value=avg_wage_growth * 100.0
+) / 100
 
 # חישוב מחירים מדומים
-adjusted_prices = calculate_adjusted_prices(df, custom_growth_rate)
+real_prices = categories[category]
+simulated_prices = [real_prices[0]]
+for i in range(1, len(years)):
+    simulated_prices.append(simulated_prices[-1] * (1 + custom_growth_rate))
 
-def plot_prices(df, adjusted_prices, selected_categories):
-    plt.figure(figsize=(10, 6))
-    years = df["Year"]
-    
-    for category in selected_categories:
-        plt.plot(years, df[category], label=f"{category} (Real)", linestyle="-", marker="o")
-        plt.plot(years, adjusted_prices[category], label=f"{category} (Adjusted)", linestyle="--", marker="x")
+simulated_prices = np.array(simulated_prices)
 
-    plt.title("Real vs. Adjusted Prices Over Time")
-    plt.xlabel("Year")
-    plt.ylabel("Price")
-    plt.legend()
-    plt.grid(True)
-    st.pyplot(plt)
+differences = simulated_prices - real_prices
 
-# הצגת הגרף
-plot_prices(df, adjusted_prices, selected_categories)
+# ציור דיאגרמת אזורים
+fig, ax = plt.subplots(figsize=(10, 6))
+ax.fill_between(years, real_prices, color="blue", alpha=0.6, label="Real Prices")
+ax.fill_between(years, simulated_prices, color="green", alpha=0.4, label="Simulated Prices")
+ax.fill_between(years, real_prices, simulated_prices, where=simulated_prices > real_prices,
+                color="red", alpha=0.3, label="Gap (Overestimated)")
+ax.fill_between(years, simulated_prices, real_prices, where=simulated_prices < real_prices,
+                color="red", alpha=0.3, label="Gap (Underestimated)")
 
-# הצגת אחוז העלייה הממוצע
-st.sidebar.write(f"### Average Wage Growth Rate: {avg_growth_rate:.2f}%")
+ax.set_title(f"Real vs. Simulated Prices: {category}", fontsize=16)
+ax.set_xlabel("Years", fontsize=12)
+ax.set_ylabel("Prices (in $)", fontsize=12)
+ax.legend()
+
+st.pyplot(fig)
