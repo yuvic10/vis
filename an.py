@@ -1,45 +1,50 @@
 import streamlit as st
 import matplotlib.pyplot as plt
-import numpy as np
 
-# נתונים
+# רשימת שנים ומספר מוצרים לכל שנה
 years = list(range(2015, 2025))
 products_per_year = [0] * len(years)  # התחל עם 0 מוצרים לכל שנה
 
 # ממשק Streamlit
-st.title("Puzzle Visualization of Years")
-st.write("Add products for each year to see the puzzle pieces fill with color.")
+st.title("Puzzle Visualization for Shopping Basket Over Time")
+st.write("Add products to the shopping basket for each year and watch the puzzle pieces darken.")
 
-# בחירת שנה לעדכון
-selected_year_index = st.slider("Select a year", 0, len(years) - 1, 0)
+# בחירת שנה להוספת מוצרים
+selected_year_index = st.slider("Select a year to add products", 0, len(years) - 1, 0)
 selected_year = years[selected_year_index]
 
-# הוספת מוצרים לשנה הנבחרת
+# הוספת מוצרים לשנה שנבחרה
 products_to_add = st.number_input(
     f"Add products for {selected_year}", min_value=0, value=0, step=1
 )
 products_per_year[selected_year_index] += products_to_add
 
-# חישוב מקסימום עבור נורמליזציה של הצבעים
+# חישוב מקסימום מוצרים לנורמליזציה של הצבעים
 max_products = max(products_per_year)
 
 # יצירת הפאזל
-fig, ax = plt.subplots(figsize=(10, 5))
+fig, ax = plt.subplots(figsize=(10, 2))  # התאמת הגודל ליחס אופקי
 
 for i, year in enumerate(years):
-    # חישוב צבע על בסיס מספר המוצרים
+    # חישוב הצבע על בסיס מספר המוצרים
     normalized_value = (
         products_per_year[i] / max_products if max_products > 0 else 0
     )
-    color = (1 - normalized_value, normalized_value, 0)  # צבעים בין ירוק לאדום
+    color = (1 - normalized_value, normalized_value, 0)  # צבע משתנה מירוק לאדום
 
-    # יצירת ריבוע לכל שנה
+    # ציור ריבוע לכל שנה
     rect = plt.Rectangle((i, 0), 1, 1, color=color, ec="black")
     ax.add_patch(rect)
 
-    # הוספת טקסט
+    # הוספת טקסט (שנה ומספר מוצרים)
     ax.text(
-        i + 0.5, 0.5, str(year), ha="center", va="center", fontsize=12, color="white"
+        i + 0.5,
+        0.5,
+        f"{year}\n{products_per_year[i]}",
+        ha="center",
+        va="center",
+        fontsize=10,
+        color="white",
     )
 
 # התאמת הצירים
