@@ -2,40 +2,44 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# נתוני דוגמה
+# Example data
 data = {
-    'שנה': [2000, 2005, 2010, 2015, 2020],
-    'שכר מינימום': [3000, 3500, 4000, 4500, 5000],
-    'יוקר מחיה': [2800, 3600, 4200, 4800, 5500]
+    'Year': [2000, 2005, 2010, 2015, 2020],
+    'Minimum Wage': [3000, 3500, 4000, 4500, 5000],
+    'Cost of Living': [2800, 3600, 4200, 4800, 5500]
 }
 df = pd.DataFrame(data)
 
-# חישוב פערים
-df['פער (ש"ח)'] = df['שכר מינימום'] - df['יוקר מחיה']
+# Calculate the difference (savings or deficit)
+df['Difference (NIS)'] = df['Minimum Wage'] - df['Cost of Living']
 
-# כותרת האפליקציה
-st.title("שכר מינימום מול יוקר המחיה")
+# Title of the application
+st.title("Minimum Wage vs. Cost of Living")
 
-# גרף קווי: שכר מינימום ויוקר מחיה
+# Create a line plot to compare minimum wage and cost of living
 fig, ax = plt.subplots()
-ax.plot(df['שנה'], df['שכר מינימום'], label='שכר מינימום', color='blue')
-ax.plot(df['שנה'], df['יוקר מחיה'], label='יוקר מחיה', color='red')
-ax.fill_between(df['שנה'], df['שכר מינימום'], df['יוקר מחיה'], 
-                where=(df['שכר מינימום'] < df['יוקר מחיה']), color='pink', alpha=0.3, label='פער שלילי')
-ax.fill_between(df['שנה'], df['שכר מינימום'], df['יוקר מחיה'], 
-                where=(df['שכר מינימום'] >= df['יוקר מחיה']), color='lightgreen', alpha=0.3, label='פער חיובי')
-ax.set_title("השוואת שכר מינימום ליוקר המחיה")
-ax.set_xlabel("שנה")
-ax.set_ylabel("ש"ח")
+ax.plot(df['Year'], df['Minimum Wage'], label='Minimum Wage', color='blue')
+ax.plot(df['Year'], df['Cost of Living'], label='Cost of Living', color='red')
+
+# Highlight positive and negative differences
+ax.fill_between(df['Year'], df['Minimum Wage'], df['Cost of Living'], 
+                where=(df['Minimum Wage'] < df['Cost of Living']), color='pink', alpha=0.3, label='Deficit')
+ax.fill_between(df['Year'], df['Minimum Wage'], df['Cost of Living'], 
+                where=(df['Minimum Wage'] >= df['Cost of Living']), color='lightgreen', alpha=0.3, label='Savings')
+
+# Add titles and labels
+ax.set_title("Comparison of Minimum Wage and Cost of Living Over Time")
+ax.set_xlabel("Year")
+ax.set_ylabel("NIS")
 ax.legend()
 
-# הצגת הגרף
+# Display the graph
 st.pyplot(fig)
 
-# טבלה להצגת הנתונים
+# Display the data as a table
 st.dataframe(df)
 
-# מד חיסכון שנתי
-year = st.selectbox('בחר שנה:', df['שנה'])
-selected_year = df[df['שנה'] == year]
-st.metric(label=f"פער בשנה {year}", value=f"{selected_year['פער (ש"ח)'].values[0]} ש\"ח")
+# Add a metric widget for year-specific analysis
+year = st.selectbox('Select a Year:', df['Year'])
+selected_year = df[df['Year'] == year]
+st.metric(label=f"Difference in {year}", value=f"{selected_year['Difference (NIS)'].values[0]} NIS")
