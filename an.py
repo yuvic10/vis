@@ -4,7 +4,7 @@ from wordcloud import WordCloud
 import matplotlib.pyplot as plt
 
 # URL של קובץ ה-Excel שהועלה ל-GitHub
-file_url = "https://github.com/yuvic10/vis/blob/main/basic_products.xlsx"
+file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_products.xlsx"
 
 # כותרת האפליקציה
 st.title("Product Basket Analysis")
