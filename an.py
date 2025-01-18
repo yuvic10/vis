@@ -1,47 +1,50 @@
 import streamlit as st
+import pandas as pd
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
-import pandas as pd
 
-# Load the data
-data = {
-    "product": ["avocado", "rice", "eggs", "banana", "onion", "avocado", "rice", "eggs", "banana", "onion"],
-    "year": [2015, 2015, 2015, 2015, 2015, 2016, 2016, 2016, 2016, 2016],
-    "yearly_average_price": [6.73, 9.596, 23.233, 3.648, 3.414, 11.031, 9.568, 22.0, 5.597, 3.228],
-}
+# העלאת קובץ אקסל
+uploaded_file = st.file_uploader("Upload an Excel file with product data", type="xlsx")
 
-df = pd.DataFrame(data)
+if uploaded_file:
+    # קריאת קובץ האקסל
+    data = pd.read_excel(uploaded_file)
 
-# Streamlit app
-st.title("Word Cloud for Years Based on Basket Cost")
+    # בדיקת מבנה הנתונים
+    if {'product', 'year', 'yearly average price'}.issubset(data.columns):
+        st.write("Data loaded successfully!")
 
-# Select products for the basket
-selected_products = st.multiselect("Select Products", options=df["product"].unique())
+        # בחירת מוצרים להרכבת סל
+        products = st.multiselect("Select products to add to the basket", options=data['product'].unique())
 
-# Filter data based on selected products
-filtered_data = df[df["product"].isin(selected_products)]
+        if products:
+            # פילטר על המוצרים שנבחרו
+            filtered_data = data[data['product'].isin(products)]
 
-# Calculate total yearly cost for the selected products
-yearly_cost = filtered_data.groupby("year")["yearly_average_price"].sum()
+            # חישוב עלות שנתית של הסל
+            yearly_cost = filtered_data.groupby('year')['yearly average price'].sum()
 
-# Display total yearly cost
-yearly_cost = yearly_cost.reset_index()
+            # בחירת סף מחיר
+            max_cost = st.slider("Set maximum cost for the basket", min_value=0, max_value=int(yearly_cost.max()), value=50)
 
-# Allow user to set a cost threshold
-threshold = st.slider("Set Cost Threshold", min_value=0, max_value=int(yearly_cost["yearly_average_price"].max()), value=10)
+            # סינון שנים שמתאימות לתקציב
+            affordable_years = yearly_cost[yearly_cost <= max_cost]
 
-# Filter years below the threshold
-filtered_years = {str(row["year"]): row["yearly_average_price"] for _, row in yearly_cost.iterrows() if row["yearly_average_price"] <= threshold}
+            if not affordable_years.empty:
+                st.write("Years that fit within the budget:", affordable_years.index.tolist())
 
-if filtered_years:
-    # Generate word cloud
-    wordcloud = WordCloud(width=800, height=400, background_color="white").generate_from_frequencies(filtered_years)
+                # יצירת ענן מילים
+                wordcloud = WordCloud(
+                    width=800, height=400, background_color='white'
+                ).generate_from_frequencies(affordable_years.to_dict())
 
-    # Display the word cloud
-    st.subheader("Word Cloud")
-    fig, ax = plt.subplots(figsize=(10, 5))
-    ax.imshow(wordcloud, interpolation="bilinear")
-    ax.axis("off")
-    st.pyplot(fig)
-else:
-    st.warning("No years match the selected threshold.")
+                # הצגת ענן המילים
+                st.subheader("Word Cloud of Affordable Years")
+                fig, ax = plt.subplots(figsize=(10, 5))
+                ax.imshow(wordcloud, interpolation='bilinear')
+                ax.axis('off')
+                st.pyplot(fig)
+            else:
+                st.warning("No years match the selected budget.")
+    else:
+        st.error("The uploaded file does not have the required columns: 'product', 'year', 'yearly average price'")
