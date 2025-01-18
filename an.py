@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 from wordcloud import WordCloud
 import matplotlib.pyplot as plt
+from matplotlib import cm
 
 # URL של קובץ ה-Excel ב-GitHub
 file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_products.xlsx"
@@ -37,10 +38,21 @@ try:
 
         # בדיקה אם יש שנים להצגה
         if filtered_years:
-            # יצירת ענן מילים
+            # יצירת מפה צבעונית לערכים
+            norm = plt.Normalize(vmin=min(filtered_years.values()), vmax=max(filtered_years.values()))
+            colormap = cm.get_cmap('viridis')
+
+            def color_func(word, font_size, position, orientation, random_state=None, **kwargs):
+                price = filtered_years[word]
+                rgba_color = colormap(norm(price))
+                r, g, b, _ = rgba_color
+                return f"rgb({int(r*255)}, {int(g*255)}, {int(b*255)})"
+
+            # יצירת ענן המילים עם צבעים מבוססי מחירים
             wordcloud = WordCloud(
                 width=800, height=400,
-                background_color='white'
+                background_color='white',
+                color_func=color_func
             ).generate_from_frequencies(filtered_years)
 
             # הצגת ענן המילים
