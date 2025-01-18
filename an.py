@@ -1,46 +1,49 @@
 import streamlit as st
 import matplotlib.pyplot as plt
 
-# רשימת שנים ומספר מוצרים לכל שנה
+# נתונים בסיסיים: מוצרים ומחיריהם לאורך השנים
+products = {
+    "Milk": [5, 6, 7, 8, 9, 10, 11, 12, 13, 14],
+    "Bread": [3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5],
+    "Eggs": [10, 12, 14, 16, 18, 20, 22, 24, 26, 28],
+    "Rice": [8, 8.5, 9, 9.5, 10, 10.5, 11, 11.5, 12, 12.5],
+    "Oil": [15, 16, 17, 18, 19, 20, 21, 22, 23, 24],
+}
 years = list(range(2015, 2025))
-products_per_year = [0] * len(years)  # התחל עם 0 מוצרים לכל שנה
 
 # ממשק Streamlit
-st.title("Puzzle Visualization for Shopping Basket Over Time")
-st.write("Add products to the shopping basket for each year and watch the puzzle pieces darken.")
+st.title("Shopping Basket Visualization Over Time")
+st.write("Choose products to add to your basket. The colors of the years will change based on the basket's price.")
 
-# בחירת שנה להוספת מוצרים
-selected_year_index = st.slider("Select a year to add products", 0, len(years) - 1, 0)
-selected_year = years[selected_year_index]
+# בחירת מוצרים
+selected_products = st.multiselect("Select products for your basket:", products.keys())
 
-# הוספת מוצרים לשנה שנבחרה
-products_to_add = st.number_input(
-    f"Add products for {selected_year}", min_value=0, value=0, step=1
-)
-products_per_year[selected_year_index] += products_to_add
+# חישוב מחיר הסל לכל שנה
+basket_prices = [0] * len(years)
+for product in selected_products:
+    prices = products[product]
+    basket_prices = [basket_prices[i] + prices[i] for i in range(len(years))]
 
-# חישוב מקסימום מוצרים לנורמליזציה של הצבעים
-max_products = max(products_per_year)
+# חישוב מקסימום לנורמליזציה של הצבעים
+max_price = max(basket_prices)
 
 # יצירת הפאזל
-fig, ax = plt.subplots(figsize=(10, 2))  # התאמת הגודל ליחס אופקי
+fig, ax = plt.subplots(figsize=(10, 2))
 
 for i, year in enumerate(years):
-    # חישוב הצבע על בסיס מספר המוצרים
-    normalized_value = (
-        products_per_year[i] / max_products if max_products > 0 else 0
-    )
+    # חישוב הצבע על בסיס מחיר הסל
+    normalized_value = basket_prices[i] / max_price if max_price > 0 else 0
     color = (1 - normalized_value, normalized_value, 0)  # צבע משתנה מירוק לאדום
 
     # ציור ריבוע לכל שנה
     rect = plt.Rectangle((i, 0), 1, 1, color=color, ec="black")
     ax.add_patch(rect)
 
-    # הוספת טקסט (שנה ומספר מוצרים)
+    # הוספת טקסט (שנה ומחיר הסל)
     ax.text(
         i + 0.5,
         0.5,
-        f"{year}\n{products_per_year[i]}",
+        f"{year}\n${basket_prices[i]:.2f}",
         ha="center",
         va="center",
         fontsize=10,
@@ -55,6 +58,6 @@ ax.axis("off")  # הסתרת הצירים
 # הצגת הפאזל
 st.pyplot(fig)
 
-# הצגת טבלה עם הנתונים
-st.write("Products added per year:")
-st.table({"Year": years, "Products": products_per_year})
+# הצגת נתונים
+st.write("Basket prices per year:")
+st.table({"Year": years, "Basket Price": basket_prices})
