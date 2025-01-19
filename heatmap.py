@@ -1,91 +1,71 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
 # URLs for the Excel files
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
-salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary1.xlsx"
+salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx"
 rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
 fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
 
-# Load data
-@st.cache_data
-def load_data():
+# Title of the app
+st.title("Cost of Living vs Salaries Analysis")
+
+try:
+    # Load data
     basket_data = pd.read_excel(basket_file_url, engine="openpyxl")
     salary_data = pd.read_excel(salary_file_url, engine="openpyxl")
     rent_data = pd.read_excel(rent_file_url, engine="openpyxl", sheet_name="Sheet2")
     fuel_data = pd.read_excel(fuel_file_url, engine="openpyxl")
-    return basket_data, salary_data, rent_data, fuel_data
 
-basket_data, salary_data, rent_data, fuel_data = load_data()
+    # Round values for consistency
+    basket_data["price for basic basket"] = basket_data["price for basic basket"].round(3)
+    fuel_data["price per liter"] = fuel_data["price per liter"].round(3)
 
-# Calculate yearly ratios for salaries
-salary_data["growth rate"] = salary_data["salary"].pct_change().fillna(0)
+    # Calculate relative cost (percentage of salary)
+    basket_data["relative_cost"] = basket_data["price for basic basket"] / salary_data["salary"] * 100
+    rent_data["relative_cost"] = rent_data["price for month"] / salary_data["salary"] * 100
+    fuel_data["relative_cost"] = fuel_data["price per liter"] / salary_data["salary"] * 100
 
-# Calculate simulated prices based on salary ratios
-def calculate_predicted_prices(real_prices, salary_ratios):
-    predicted_prices = [real_prices.iloc[0]]  # Start with the first real price
-    for i in range(1, len(real_prices)):
-        predicted = predicted_prices[-1] * (1 + salary_ratios.iloc[i])
-        predicted_prices.append(predicted)
-    return predicted_prices
+    # Create a heatmap-ready DataFrame
+    heatmap_data = {
+        "Year": basket_data["year"],
+        "Basket % of Salary": basket_data["relative_cost"],
+        "Rent % of Salary": rent_data["relative_cost"],
+        "Fuel % of Salary": fuel_data["relative_cost"],
+    }
+    heatmap_df = pd.DataFrame(heatmap_data).set_index("Year")
 
-# Calculate predicted prices for all categories
-basket_data["predicted price"] = calculate_predicted_prices(
-    basket_data["price for basic basket"], salary_data["growth rate"]
-)
-rent_data["predicted price"] = calculate_predicted_prices(
-    rent_data["price for month"], salary_data["growth rate"]
-)
-fuel_data["predicted price"] = calculate_predicted_prices(
-    fuel_data["price per liter"], salary_data["growth rate"]
-)
+    # User selection for categories and years
+    st.sidebar.header("Filters")
+    categories = st.sidebar.multiselect(
+        "Select categories to display:", ["Basket % of Salary", "Rent % of Salary", "Fuel % of Salary"],
+        default=["Basket % of Salary", "Rent % of Salary", "Fuel % of Salary"]
+    )
+    year_range = st.sidebar.slider(
+        "Select year range:",
+        int(heatmap_df.index.min()),
+        int(heatmap_df.index.max()),
+        (int(heatmap_df.index.min()), int(heatmap_df.index.max()))
+    )
 
-# Calculate percentage difference between real and predicted prices
-basket_data["percentage difference"] = (
-    (basket_data["price for basic basket"] - basket_data["predicted price"])
-    / basket_data["predicted price"]
-) * 100
-rent_data["percentage difference"] = (
-    (rent_data["price for month"] - rent_data["predicted price"])
-    / rent_data["predicted price"]
-) * 100
-fuel_data["percentage difference"] = (
-    (fuel_data["price per liter"] - fuel_data["predicted price"])
-    / fuel_data["predicted price"]
-) * 100
+    # Filter data based on user selections
+    filtered_data = heatmap_df.loc[year_range[0]:year_range[1], categories]
 
-# Create a heatmap-ready DataFrame
-heatmap_data = pd.DataFrame({
-    "Year": basket_data["year"],
-    "Basket Difference (%)": basket_data["percentage difference"],
-    "Rent Difference (%)": rent_data["percentage difference"],
-    "Fuel Difference (%)": fuel_data["percentage difference"],
-}).set_index("Year")
+    # Generate heatmap
+    st.write("### Heatmap of Cost of Living as Percentage of Salary")
+    plt.figure(figsize=(12, 6))
+    sns.heatmap(
+        filtered_data.transpose(),
+        annot=True, fmt=".2f", cmap="coolwarm", cbar=True,
+        linewidths=.5, linecolor="gray"
+    )
+    plt.title("Cost of Living Relative to Salaries Over Time")
+    plt.xlabel("Year")
+    plt.ylabel("Categories")
+    st.pyplot(plt)
 
-# User selection for categories and years
-st.sidebar.header("Filters")
-categories = st.sidebar.multiselect(
-    "Select categories to display:", ["Basket Difference (%)", "Rent Difference (%)", "Fuel Difference (%)"],
-    default=["Basket Difference (%)", "Rent Difference (%)", "Fuel Difference (%)"]
-)
-year_range = st.sidebar.slider(
-    "Select year range:",
-    int(heatmap_data.index.min()),
-    int(heatmap_data.index.max()),
-    (int(heatmap_data.index.min()), int(heatmap_data.index.max()))
-)
-
-# Filter data based on user selections
-filtered_data = heatmap_data.loc[year_range[0]:year_range[1], categories]
-
-# Generate heatmap
-st.write("### Heatmap of Percentage Difference Between Real and Predicted Prices")
-plt.figure(figsize=(12, 6))
-sns.heatmap(
-    filtered_data.transpose(),
-    annot=True, fmt=".1f", cmap="coolwarm", cbar=True,
-    linewidths=.5, linecolor="gray"
-)
-st.pyplot(plt)
+except Exception as e:
+    st.error(f"An error occurred: {e}")
