@@ -1,54 +1,66 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
+import seaborn as sns
 import matplotlib.pyplot as plt
 
-# URL לנתוני סל בסיסי ומשכורות
-basket_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
-salary_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx"
+# URLs של קבצי ה-Excel
+basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
+salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx"
+rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
+fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
 
-# קריאת הנתונים
-basket_data = pd.read_excel(basket_url, sheet_name=0)
-salary_data = pd.read_excel(salary_url, sheet_name=0)
+# כותרת האפליקציה
+st.title("Real vs Simulated Prices Heatmap")
 
-# עיגול מחירים ל-3 ספרות
-basket_data["price for basic basket"] = basket_data["price for basic basket"].round(3)
+try:
+    # קריאת נתוני הסל הבסיסי
+    basket_data = pd.read_excel(basket_file_url, engine="openpyxl")
+    basket_data["price for basic basket"] = basket_data["price for basic basket"].round(3)
 
-# חישוב אחוזי גדילה במשכורות לכל שנה
-salary_data["growth_rate"] = salary_data["salary"].pct_change().fillna(0)  # אחוז שינוי לפי השנה הקודמת
+    # קריאת נתוני המשכורות
+    salary_data = pd.read_excel(salary_file_url, engine="openpyxl")
 
-# יצירת עמודה חדשה למדמה
-basket_data["simulated price"] = 0  # אתחול הערכים
+    # קריאת נתוני השכירות (מתוך Sheet 2)
+    rent_data = pd.read_excel(rent_file_url, engine="openpyxl", sheet_name="Sheet2")
 
-# חישוב מחירים מדומים: שימוש באחוז הגדילה לכל שנה בנפרד
-basket_data.loc[0, "simulated price"] = basket_data.loc[0, "price for basic basket"]  # שנה ראשונה נשארת אותו דבר
-for i in range(1, len(basket_data)):
-    prev_price = basket_data.loc[i - 1, "simulated price"]  # המחיר המדומה של השנה הקודמת
-    growth_rate = salary_data.loc[i, "growth_rate"]  # אחוז השינוי של השנה הנוכחית
-    basket_data.loc[i, "simulated price"] = prev_price * (1 + growth_rate)  # חישוב המחיר המדומה
+    # קריאת נתוני הדלק
+    fuel_data = pd.read_excel(fuel_file_url, engine="openpyxl")
+    fuel_data["price per liter"] = fuel_data["price per liter"].round(3)
 
-# ממשק Streamlit
-st.title("Real vs Simulated Prices Line Chart")
+    # חישוב אחוזי השינוי במשכורות
+    salary_data["growth rate"] = salary_data["salary"].pct_change().fillna(0)
 
-# בחירת נתונים להצגה
-data_options = ["Real Basket Price", "Simulated Basket Price"]
-selected_data = st.multiselect("Select Data to Display", data_options, default=data_options)
+    # יישום השינוי על הנתונים האחרים
+    basket_data["simulated price for basket"] = basket_data["price for basic basket"].iloc[0] * (
+        1 + salary_data["growth rate"].cumsum()
+    )
+    rent_data["simulated price for month"] = rent_data["price for month"].iloc[0] * (
+        1 + salary_data["growth rate"].cumsum()
+    )
+    fuel_data["simulated price per liter"] = fuel_data["price per liter"].iloc[0] * (
+        1 + salary_data["growth rate"].cumsum()
+    )
 
-# הכנת הנתונים לגרף
-graph_data = pd.DataFrame({
-    "Year": basket_data["year"],
-    "Real Basket Price": basket_data["price for basic basket"],
-    "Simulated Basket Price": basket_data["simulated price"]
-}).set_index("Year")
+    # מיזוג הנתונים ליצירת Heatmap
+    heatmap_data = pd.DataFrame({
+        "Year": basket_data["year"],
+        "Real Basket Price": basket_data["price for basic basket"],
+        "Simulated Basket Price": basket_data["simulated price for basket"],
+        "Real Rent Price": rent_data["price for month"],
+        "Simulated Rent Price": rent_data["simulated price for month"],
+        "Real Fuel Price": fuel_data["price per liter"],
+        "Simulated Fuel Price": fuel_data["simulated price per liter"],
+    })
 
-# ציור גרף
-st.write("### Line Chart of Real vs Simulated Prices")
-fig, ax = plt.subplots(figsize=(10, 5))
-if "Real Basket Price" in selected_data:
-    ax.plot(graph_data.index, graph_data["Real Basket Price"], label="Real Basket Price", color="blue")
-if "Simulated Basket Price" in selected_data:
-    ax.plot(graph_data.index, graph_data["Simulated Basket Price"], label="Simulated Basket Price", color="orange")
-ax.set_title("Real vs Simulated Prices Over Time")
-ax.set_xlabel("Year")
-ax.set_ylabel("Price")
-ax.legend()
-st.pyplot(fig)
+    # יצירת Heatmap
+    st.write("### Heatmap of Real vs Simulated Prices")
+    plt.figure(figsize=(12, 6))
+    sns.heatmap(
+        heatmap_data.set_index("Year").transpose(),
+        annot=True, fmt=".2f", cmap="coolwarm", cbar=True
+    )
+    st.pyplot(plt)
+
+except Exception as e:
+    st.error(f"An error occurred: {e}")
