@@ -26,13 +26,13 @@ try:
 
     # Calculate yearly ratios (slopes) for salaries
     def calculate_salary_ratios(df):
-        ratios = [1]  # The first year ratio is always 1
+        ratios = [1]  # Start with a ratio of 1 for the first year
         for i in range(1, len(df)):
-            ratios.append(df["salary"].iloc[i] / df["salary"].iloc[i - 1])
-        df["ratio"] = ratios
-        return df
+            ratio = df["salary"].iloc[i] / df["salary"].iloc[i - 1]
+            ratios.append(ratio)
+        return ratios
 
-    salary_data = calculate_salary_ratios(salary_data)
+    salary_ratios = calculate_salary_ratios(salary_data)
 
     # Calculate predicted prices based on salary ratios
     def calculate_predicted_prices(real_prices, salary_ratios):
@@ -42,24 +42,22 @@ try:
             predicted_prices.append(predicted)
         return predicted_prices
 
-    # Prepare data for visualization
-    def prepare_data(real_df, salary_df, value_column):
-        real_prices = real_df.set_index("year")[value_column]
-        salary_ratios = salary_df.set_index("year")["ratio"].tolist()
-        predicted_prices = calculate_predicted_prices(real_prices, salary_ratios)
-        return real_prices, predicted_prices
-
-    # Calculate real and predicted prices for each category
-    basket_real, basket_predicted = prepare_data(basket_data, salary_data, "price for basic basket")
-    rent_real, rent_predicted = prepare_data(rent_data, salary_data, "price for month")
-    fuel_real, fuel_predicted = prepare_data(fuel_data, salary_data, "price per liter")
+    basket_data["simulated price for basket"] = calculate_predicted_prices(
+        basket_data["price for basic basket"], salary_ratios
+    )
+    rent_data["simulated price for month"] = calculate_predicted_prices(
+        rent_data["price for month"], salary_ratios
+    )
+    fuel_data["simulated price per liter"] = calculate_predicted_prices(
+        fuel_data["price per liter"], salary_ratios
+    )
 
     # Create a heatmap-ready DataFrame
     heatmap_data = {
         "Year": basket_data["year"],
-        "Basket Difference": [p - r for p, r in zip(basket_predicted, basket_real)],
-        "Rent Difference": [p - r for p, r in zip(rent_predicted, rent_real)],
-        "Fuel Difference": [p - r for p, r in zip(fuel_predicted, fuel_real)],
+        "Basket Difference": basket_data["simulated price for basket"] - basket_data["price for basic basket"],
+        "Rent Difference": rent_data["simulated price for month"] - rent_data["price for month"],
+        "Fuel Difference": fuel_data["simulated price per liter"] - fuel_data["price per liter"],
     }
     heatmap_df = pd.DataFrame(heatmap_data).set_index("Year")
 
