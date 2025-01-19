@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
+import plotly.express as px
 
 # URLs of the datasets
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
@@ -28,34 +27,39 @@ basket_df["basket_percentage"] = calculate_percentage_of_salary(basket_df["price
 rent_df["rent_percentage"] = calculate_percentage_of_salary(rent_df["price for month"], salary_df["salary"])
 fuel_df["fuel_percentage"] = calculate_percentage_of_salary(fuel_df["price per liter"], salary_df["salary"])
 
-# Streamlit UI
-st.title("Coxcomb Chart: Percentage of Salary Spent on Categories")
-
-# Select category
-category_options = {
+# Combine data into a single DataFrame
+combined_data = pd.DataFrame({
+    "Year": basket_df["year"],
     "Basket": basket_df["basket_percentage"],
     "Rent": rent_df["rent_percentage"],
-    "Fuel": fuel_df["fuel_percentage"],
-}
-selected_category = st.selectbox("Select a category to display:", list(category_options.keys()))
+    "Fuel": fuel_df["fuel_percentage"]
+})
 
-# Prepare data for the selected category
-selected_data = category_options[selected_category]
-years = basket_df["year"]  # Assuming all datasets have the same years
+# Streamlit UI
+st.title("Ribbon Chart: Salary Percentage by Category Over Time")
 
-# Create polar area chart
-angles = np.linspace(0, 2 * np.pi, len(years), endpoint=False).tolist()
-values = selected_data.tolist()
-angles += angles[:1]  # Closing the circle
-values += values[:1]
+# Select category
+selected_category = st.selectbox("Choose a category:", ["Basket", "Rent", "Fuel"])
 
-fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={"polar": True})
-ax.fill(angles, values, color="teal", alpha=0.6)
-ax.plot(angles, values, color="black", linewidth=1.5)
-ax.set_yticks([])
-ax.set_xticks(angles[:-1])
-ax.set_xticklabels(years)
-ax.set_title(f"{selected_category} Percentage of Salary Over Time", va="bottom")
+# Prepare data for selected category
+selected_data = combined_data[["Year", selected_category]].rename(columns={selected_category: "Percentage"})
+
+# Create Ribbon Chart
+fig = px.area(
+    selected_data,
+    x="Year",
+    y="Percentage",
+    title=f"{selected_category} Percentage of Salary Over Time",
+    labels={"Percentage": "Percentage of Salary (%)", "Year": "Year"},
+    color_discrete_sequence=["teal"]
+)
+
+fig.update_layout(
+    xaxis=dict(title="Year", showgrid=False),
+    yaxis=dict(title="Percentage of Salary (%)", showgrid=True),
+    plot_bgcolor="white",
+    title=dict(x=0.5),  # Center the title
+)
 
 # Display the chart
-st.pyplot(fig)
+st.plotly_chart(fig)
