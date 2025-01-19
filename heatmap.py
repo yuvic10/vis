@@ -2,6 +2,7 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.cm import get_cmap
 
 # URLs of the datasets
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
@@ -29,7 +30,7 @@ rent_df["rent_percentage"] = calculate_percentage_of_salary(rent_df["price for m
 fuel_df["fuel_percentage"] = calculate_percentage_of_salary(fuel_df["price per liter"], salary_df["salary"])
 
 # Streamlit UI
-st.title("Coxcomb Chart: Percentage of Salary Spent on Categories")
+st.title("Enhanced Coxcomb Chart: Percentage of Salary Spent on Categories")
 
 # Select category
 category_options = {
@@ -43,19 +44,33 @@ selected_category = st.selectbox("Select a category to display:", list(category_
 selected_data = category_options[selected_category]
 years = basket_df["year"]  # Assuming all datasets have the same years
 
-# Create polar area chart
+# Create polar area chart with colors
 angles = np.linspace(0, 2 * np.pi, len(years), endpoint=False).tolist()
 values = selected_data.tolist()
 angles += angles[:1]  # Closing the circle
 values += values[:1]
 
-fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={"polar": True})
-ax.fill(angles, values, color="teal", alpha=0.6)
-ax.plot(angles, values, color="black", linewidth=1.5)
+cmap = get_cmap("viridis")  # Use a color map
+colors = [cmap(i / len(years)) for i in range(len(years))]
+
+fig, ax = plt.subplots(figsize=(10, 10), subplot_kw={"polar": True})
+for i in range(len(years)):
+    ax.bar(
+        angles[i],
+        values[i],
+        width=2 * np.pi / len(years),
+        color=colors[i],
+        edgecolor="black",
+        alpha=0.7,
+        label=f"{years[i]}"
+    )
 ax.set_yticks([])
 ax.set_xticks(angles[:-1])
-ax.set_xticklabels(years)
-ax.set_title(f"{selected_category} Percentage of Salary Over Time", va="bottom")
+ax.set_xticklabels(years, fontsize=10)
+ax.set_title(f"{selected_category} Percentage of Salary Over Time", va="bottom", fontsize=14, fontweight="bold")
+
+# Add legend outside the chart
+ax.legend(loc="upper right", bbox_to_anchor=(1.3, 1.1))
 
 # Display the chart
 st.pyplot(fig)
