@@ -1,5 +1,6 @@
 import streamlit as st
 import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
 
 # Load the data
@@ -28,7 +29,7 @@ def load_data():
 growth_data = load_data()
 
 # Streamlit UI
-st.title("Histogram Overlay: Comparing Two Categories")
+st.title("Scatter Plot with Trend Line: Correlation Between Categories")
 st.sidebar.title("Select Categories")
 
 # Dropdowns for category selection
@@ -36,16 +37,17 @@ categories = growth_data.columns.tolist()
 category1 = st.sidebar.selectbox("Select First Category:", categories)
 category2 = st.sidebar.selectbox("Select Second Category:", [cat for cat in categories if cat != category1])
 
-# Plot the overlayed histograms
+# Scatter plot with trend line
 fig, ax = plt.subplots(figsize=(8, 6))
-ax.hist(
-    growth_data[category1], bins=10, alpha=0.6, label=category1, color="blue", edgecolor="black"
+sns.regplot(
+    x=growth_data[category1],
+    y=growth_data[category2],
+    ax=ax,
+    scatter_kws={'color': 'blue', 'alpha': 0.6},
+    line_kws={'color': 'red'}
 )
-ax.hist(
-    growth_data[category2], bins=10, alpha=0.6, label=category2, color="orange", edgecolor="black"
-)
-ax.set_title(f"Histogram Overlay: {category1} vs {category2}")
-ax.set_xlabel("Growth Rate (%)")
-ax.set_ylabel("Frequency")
-ax.legend()
+ax.set_title(f"Scatter Plot with Trend Line: {category1} vs {category2}")
+ax.set_xlabel(category1)
+ax.set_ylabel(category2)
+
 st.pyplot(fig)
