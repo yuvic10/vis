@@ -43,21 +43,23 @@ if basket_df is not None and rent_df is not None and fuel_df is not None and sal
         combined_data = pd.concat([basket_data, rent_data, fuel_data], ignore_index=True)
 
         # Streamlit UI
-        st.title("Sunburst Chart: Percentage of Salary Spent on Categories")
+        st.title("Bubble Chart: Percentage of Salary Spent on Categories")
 
         # Add category selection
         selected_category = st.selectbox("Select a category:", ["Basket", "Rent", "Fuel"])
-        
+
         # Filter data by selected category
         filtered_data = combined_data[combined_data["Category"] == selected_category]
 
-        # Create and display Sunburst chart
-        fig = px.sunburst(
+        # Create and display Bubble Chart
+        fig = px.scatter(
             filtered_data,
-            path=["Category", "Year"],
-            values="Percentage",
-            title=f"Percentage of Salary Spent on {selected_category} Over Time",
-            color="Percentage",
+            x="Year",
+            y="Percentage",
+            size="Percentage",
+            color="Year",
+            title=f"Bubble Chart: {selected_category} Percentage of Salary Over Time",
+            labels={"Percentage": "% of Salary", "Year": "Year"},
             color_continuous_scale="Viridis"
         )
         st.plotly_chart(fig)
