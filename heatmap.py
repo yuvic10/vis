@@ -1,58 +1,30 @@
-import streamlit as st
-import pandas as pd
-import matplotlib.pyplot as plt
-import numpy as np
+import plotly.express as px
 
-# URLs of the datasets
-basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
-rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
-fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
-salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary1.xlsx"
-
-# Load the data
-@st.cache_data
-def load_data():
-    basket_df = pd.read_excel(basket_file_url, engine="openpyxl")
-    rent_df = pd.read_excel(rent_file_url, engine="openpyxl", sheet_name="Sheet2")
-    fuel_df = pd.read_excel(fuel_file_url, engine="openpyxl")
-    salary_df = pd.read_excel(salary_file_url, engine="openpyxl")
-    return basket_df, rent_df, fuel_df, salary_df
-
-basket_df, rent_df, fuel_df, salary_df = load_data()
-
-# Calculate percentage of salary for each category
-def calculate_percentage_of_salary(category_price, salary):
-    return (category_price / salary) * 100
-
-basket_df["basket_percentage"] = calculate_percentage_of_salary(basket_df["price for basic basket"], salary_df["salary"])
-rent_df["rent_percentage"] = calculate_percentage_of_salary(rent_df["price for month"], salary_df["salary"])
-fuel_df["fuel_percentage"] = calculate_percentage_of_salary(fuel_df["price per liter"], salary_df["salary"])
-
-# Streamlit UI
-st.title("Radial Chart: Percentage of Salary by Category")
-
-# Select category
-category_options = {
+# Combine data into a single DataFrame
+combined_data = pd.DataFrame({
+    "Year": basket_df["year"],
     "Basket": basket_df["basket_percentage"],
     "Rent": rent_df["rent_percentage"],
     "Fuel": fuel_df["fuel_percentage"]
-}
-selected_category = st.selectbox("Select a category to display:", list(category_options.keys()))
+})
 
-# Prepare data for the selected category
-selected_data = category_options[selected_category]
-years = basket_df["year"]
+# Streamlit UI
+st.title("Ribbon Chart: Salary Percentage by Category Over Time")
 
-# Create radial chart
-fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={"projection": "polar"})
-angles = np.linspace(0, 2 * np.pi, len(years), endpoint=False)
-bars = ax.bar(angles, selected_data, width=0.4, color=plt.cm.viridis(selected_data / max(selected_data)), alpha=0.8)
+# Select category
+selected_category = st.selectbox("Choose a category:", ["Basket", "Rent", "Fuel"])
 
-# Add year labels
-ax.set_xticks(angles)
-ax.set_xticklabels(years)
-ax.set_yticks([])  # Remove radial grid lines
-ax.set_title(f"{selected_category} Percentage of Salary Over Time", va="bottom")
+# Prepare data for selected category
+selected_data = combined_data[["Year", selected_category]].rename(columns={selected_category: "Percentage"})
 
-# Display chart
-st.pyplot(fig)
+# Create Ribbon Chart
+fig = px.area(
+    selected_data,
+    x="Year",
+    y="Percentage",
+    title=f"{selected_category} Percentage Over Time",
+    labels={"Percentage": "Percentage of Salary (%)", "Year": "Year"},
+    color_discrete_sequence=["teal"]
+)
+
+st.plotly_chart(fig)
