@@ -19,6 +19,10 @@ def load_data():
 
 basket_df, rent_df, fuel_df, salary_df = load_data()
 
+# Adjust data: multiply fuel by 100 and basket by 4
+basket_df["price for basic basket"] *= 4  # Assuming 4 baskets per month
+fuel_df["price per liter"] *= 100        # Assuming 100 liters per month
+
 # Calculate percentage of salary for each category
 def calculate_percentage_of_salary(category_price, salary):
     return (category_price / salary) * 100
@@ -62,7 +66,6 @@ fig = px.area(
     color_discrete_sequence=["teal"]
 )
 
-# Update the Y-axis range and ensure all years are visible
 fig.update_layout(
     xaxis=dict(title="Year", dtick=1, showgrid=False),  # Show all years with dtick=1
     yaxis=dict(title="Percentage of Salary (%)", range=[min_y, max_y], showgrid=True),
