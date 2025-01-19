@@ -35,6 +35,10 @@ combined_data = pd.DataFrame({
     "Fuel": fuel_df["fuel_percentage"]
 })
 
+# Fill missing years with NaN values
+all_years = pd.DataFrame({"Year": range(combined_data["Year"].min(), combined_data["Year"].max() + 1)})
+combined_data = pd.merge(all_years, combined_data, on="Year", how="left")
+
 # Streamlit UI
 st.title("Ribbon Chart: Salary Percentage by Category Over Time")
 
@@ -45,8 +49,8 @@ selected_category = st.selectbox("Choose a category:", ["Basket", "Rent", "Fuel"
 selected_data = combined_data[["Year", selected_category]].rename(columns={selected_category: "Percentage"})
 
 # Calculate the min and max for a smaller Y-axis range
-min_y = selected_data["Percentage"].min() * 0.9  # Reduce slightly for better view
-max_y = selected_data["Percentage"].max() * 1.1  # Expand slightly for better view
+min_y = selected_data["Percentage"].min() * 0.9 if not selected_data["Percentage"].isnull().all() else 0
+max_y = selected_data["Percentage"].max() * 1.1 if not selected_data["Percentage"].isnull().all() else 1
 
 # Create Ribbon Chart
 fig = px.area(
@@ -58,9 +62,9 @@ fig = px.area(
     color_discrete_sequence=["teal"]
 )
 
-# Update the Y-axis range
+# Update the Y-axis range and ensure all years are visible
 fig.update_layout(
-    xaxis=dict(title="Year", showgrid=False),
+    xaxis=dict(title="Year", dtick=1, showgrid=False),  # Show all years with dtick=1
     yaxis=dict(title="Percentage of Salary (%)", range=[min_y, max_y], showgrid=True),
     plot_bgcolor="white",
     title=dict(x=0.5),  # Center the title
