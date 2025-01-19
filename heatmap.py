@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
 rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
 fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
-salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx"
+salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary1.xlsx"
 
 # Load the data
 @st.cache_data
@@ -27,40 +27,34 @@ basket_df["basket_percentage"] = calculate_percentage_of_salary(basket_df["price
 rent_df["rent_percentage"] = calculate_percentage_of_salary(rent_df["price for month"], salary_df["salary"])
 fuel_df["fuel_percentage"] = calculate_percentage_of_salary(fuel_df["price per liter"], salary_df["salary"])
 
-# Combine data into a single DataFrame
-combined_data = pd.DataFrame({
-    "Year": basket_df["year"],
+# Streamlit UI
+st.title("Yearly Pie Charts: Percentage of Salary Spent")
+
+# Select category
+category_options = {
     "Basket": basket_df["basket_percentage"],
     "Rent": rent_df["rent_percentage"],
-    "Fuel": fuel_df["fuel_percentage"]
-})
+    "Fuel": fuel_df["fuel_percentage"],
+}
+selected_category = st.selectbox("Select a category to display:", list(category_options.keys()))
 
-# Streamlit UI
-st.title("Interactive Pie Chart: Percentage of Salary Spent")
+# Select years to display
+selected_years = st.multiselect("Select years to display:", basket_df["year"].unique(), default=basket_df["year"].unique())
 
-# Select years
-selected_years = st.multiselect("Select years to include:", combined_data["Year"].unique(), default=combined_data["Year"].unique())
+# Create a pie chart for each selected year
+fig, axes = plt.subplots(1, len(selected_years), figsize=(len(selected_years) * 5, 5))
 
-# Select categories to display
-category_options = ["Basket", "Rent", "Fuel"]
-selected_categories = st.multiselect("Select categories to include:", category_options, default=category_options)
+if len(selected_years) == 1:
+    axes = [axes]  # Ensure axes is always iterable for a single chart
 
-# Filter data for the selected years and categories
-filtered_data = combined_data[combined_data["Year"].isin(selected_years)]
+for i, year in enumerate(selected_years):
+    year_data = category_options[selected_category][basket_df["year"] == year].values[0]
+    salary_data = 100 - year_data  # Remaining salary percentage
+    labels = [f"{selected_category} ({year})", "Remaining Salary"]
+    values = [year_data, salary_data]
 
-# Calculate the average percentage for the selected years
-average_values = filtered_data[selected_categories].mean()
+    axes[i].pie(values, labels=labels, autopct='%1.1f%%', startangle=90, colors=["#FF9999", "#66B2FF"])
+    axes[i].set_title(f"{selected_category} in {year}")
 
-# Create pie chart
-fig, ax = plt.subplots(figsize=(8, 8))
-ax.pie(
-    average_values,
-    labels=selected_categories,
-    autopct='%1.1f%%',
-    startangle=90,
-    colors=plt.cm.Set3.colors  # Using a color map for better visuals
-)
-ax.set_title(f"Average Percentage of Salary Spent ({', '.join(map(str, selected_years))})", fontsize=14)
-
-# Display the chart
+plt.tight_layout()
 st.pyplot(fig)
