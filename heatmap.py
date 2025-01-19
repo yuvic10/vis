@@ -57,13 +57,13 @@ sources = []
 targets = []
 values = []
 
-for i, year in enumerate(selected_years):
+for year in selected_years:
     for category in selected_categories:
         sources.append(0)  # Salary is the source
         targets.append(labels.index(f"{category} ({year})"))
-        category_values = filtered_data[category].tolist()
-        normalized_values = normalize_values(category_values)
-        values.append(normalized_values[selected_years.index(year)])
+        category_values = filtered_data.loc[filtered_data["Year"] == year, category].values
+        if len(category_values) > 0:
+            values.append(category_values[0])  # Append raw value (not normalized)
 
 # Create Sankey diagram
 fig = go.Figure(go.Sankey(
