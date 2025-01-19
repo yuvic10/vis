@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-import seaborn as sns
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 # URLs של קבצי הנתונים
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
@@ -20,57 +20,53 @@ def load_data():
 
 basket_df, salary_df, rent_df, fuel_df = load_data()
 
-# הוספת עמודות שיעורי שינוי לכל קטגוריה
-basket_df["basket_growth"] = basket_df["price for basic basket"].pct_change().fillna(0)
-salary_df["salary_growth"] = salary_df["salary"].pct_change().fillna(0)
-rent_df["rent_growth"] = rent_df["price for month"].pct_change().fillna(0)
-fuel_df["fuel_growth"] = fuel_df["price per liter"].pct_change().fillna(0)
+# חישוב שיעור הגדילה לכל קטגוריה
+def calculate_growth_rate(data, column):
+    return data[column].pct_change().fillna(0) * 100
 
-# מיזוג הנתונים לניתוח
-merged_df = pd.DataFrame({
-    "Year": basket_df["year"],
-    "Basket Growth": basket_df["basket_growth"],
-    "Salary Growth": salary_df["salary_growth"],
-    "Rent Growth": rent_df["rent_growth"],
-    "Fuel Growth": fuel_df["fuel_growth"]
-}).set_index("Year")
+basket_df["basket_growth"] = calculate_growth_rate(basket_df, "price for basic basket")
+rent_df["rent_growth"] = calculate_growth_rate(rent_df, "price for month")
+fuel_df["fuel_growth"] = calculate_growth_rate(fuel_df, "price per liter")
 
-# ממשק Streamlit
-st.title("Correlation Analysis: Economic Indicators")
-st.sidebar.title("Filters")
+# חישוב התרומה של כל קטגוריה לשינוי הכולל
+combined_growth = basket_df[["year", "basket_growth"]].copy()
+combined_growth["rent_growth"] = rent_df["rent_growth"]
+combined_growth["fuel_growth"] = fuel_df["fuel_growth"]
 
-# בחירת שנים להצגה
-start_year, end_year = st.sidebar.slider(
-    "Select Year Range:",
-    int(merged_df.index.min()),
-    int(merged_df.index.max()),
-    (int(merged_df.index.min()), int(merged_df.index.max()))
+combined_growth["total_growth"] = (
+    combined_growth["basket_growth"]
+    + combined_growth["rent_growth"]
+    + combined_growth["fuel_growth"]
 )
 
-# סינון נתונים לפי שנים
-filtered_df = merged_df.loc[start_year:end_year]
+combined_growth["basket_contribution"] = (combined_growth["basket_growth"] / combined_growth["total_growth"]) * 100
+combined_growth["rent_contribution"] = (combined_growth["rent_growth"] / combined_growth["total_growth"]) * 100
+combined_growth["fuel_contribution"] = (combined_growth["fuel_growth"] / combined_growth["total_growth"]) * 100
 
-# חישוב קורלציות
-correlation_matrix = filtered_df.corr()
+# ממשק Streamlit
+st.title("Category Contribution to Cost of Living Over Time")
 
-# הצגת Heatmap
-st.write("### Correlation Heatmap")
+# בחירת שנים להצגה
+start_year, end_year = st.slider(
+    "Select Year Range:",
+    int(combined_growth["year"].min()),
+    int(combined_growth["year"].max()),
+    (int(combined_growth["year"].min()), int(combined_growth["year"].max()))
+)
+
+filtered_data = combined_growth[
+    (combined_growth["year"] >= start_year) & (combined_growth["year"] <= end_year)
+]
+
+# Heatmap של תרומת הקטגוריות
+st.write("### Contribution Heatmap")
 plt.figure(figsize=(10, 6))
-sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", fmt=".2f", cbar=True)
-st.pyplot(plt)
-
-# הצגת נתונים בטבלה
-st.write("### Filtered Data")
-st.dataframe(filtered_df)
-
-# הצגת גרף השוואתי
-st.write("### Growth Rates Over Time")
-plt.figure(figsize=(12, 6))
-for column in filtered_df.columns:
-    plt.plot(filtered_df.index, filtered_df[column], marker='o', label=column)
-plt.title("Growth Rates Over Time")
-plt.xlabel("Year")
-plt.ylabel("Growth Rate (%)")
-plt.legend()
-plt.grid(True)
+sns.heatmap(
+    filtered_data[["basket_contribution", "rent_contribution", "fuel_contribution"]].transpose(),
+    annot=True,
+    fmt=".1f",
+    cmap="coolwarm",
+    xticklabels=filtered_data["year"],
+    yticklabels=["Basket", "Rent", "Fuel"]
+)
 st.pyplot(plt)
