@@ -3,3 +3,4 @@ wordcloud
 matplotlib
 openpyxl
 seaborn
+sklearn.preprocessing 
