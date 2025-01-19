@@ -36,14 +36,21 @@ sankey_data = pd.DataFrame({
 })
 
 # Streamlit UI
-st.title("Sankey Diagram: Percentage of Salary by Categories Over Time")
+st.title("Sankey Diagram: Amplified Percentage of Salary by Categories Over Time")
 
 # Select years and categories
 selected_years = st.multiselect("Select years to display:", sankey_data["Year"].unique(), default=sankey_data["Year"].unique()[:3])
-selected_categories = st.multiselect("Select categories to display:", ["Basket", "Rent", "Fuel"], default=["Basket", "Rent"])
+selected_categories = st.multiselect("Select categories to display:", ["Basket", "Rent", "Fuel"], default=["Basket", "Rent", "Fuel"])
 
 # Filter data
 filtered_data = sankey_data[sankey_data["Year"].isin(selected_years)]
+
+# Amplify small changes for better visualization
+def amplify_values(values, factor=10):
+    """
+    Amplify small values to make them visually significant.
+    """
+    return [value * factor if value < 10 else value for value in values]
 
 # Create Sankey diagram inputs
 labels = ["Salary"] + [f"{category} ({year})" for year in selected_years for category in selected_categories]
@@ -55,7 +62,11 @@ for i, year in enumerate(selected_years):
     for category in selected_categories:
         sources.append(0)  # Salary is the source
         targets.append(labels.index(f"{category} ({year})"))
-        values.append(filtered_data.loc[filtered_data["Year"] == year, category].values[0])
+        value = filtered_data.loc[filtered_data["Year"] == year, category].values[0]
+        values.append(value)
+
+# Amplify values for better visualization
+values = amplify_values(values, factor=20)
 
 # Create Sankey diagram
 fig = go.Figure(go.Sankey(
@@ -73,5 +84,5 @@ fig = go.Figure(go.Sankey(
     )
 ))
 
-fig.update_layout(title_text="Sankey Diagram: Salary Breakdown by Categories", font_size=10)
+fig.update_layout(title_text="Sankey Diagram: Amplified Salary Breakdown by Categories", font_size=10)
 st.plotly_chart(fig)
