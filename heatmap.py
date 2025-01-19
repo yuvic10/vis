@@ -1,10 +1,8 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
 
-# Load the data
+# Load data from uploaded Excel files
 @st.cache_data
 def load_data():
     salary_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx")
@@ -13,6 +11,7 @@ def load_data():
     basket_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx")
     return salary_df, rent_df, fuel_df, basket_df
 
+# Load the data
 salary_df, rent_df, fuel_df, basket_df = load_data()
 
 # Calculate yearly ratios (slopes) for salaries
@@ -31,51 +30,39 @@ def calculate_predicted_prices(real_prices, salary_ratios):
         predicted_prices.append(predicted)
     return predicted_prices
 
-# Prepare data for Heatmap
-def prepare_heatmap_data(real_df, salary_df, value_column, label):
+# Prepare data for visualization
+def prepare_data(real_df, salary_df, value_column):
     real_prices = real_df.set_index("year")[value_column]
     salary_ratios = salary_df.set_index("year")["ratio"].fillna(1)
     predicted_prices = calculate_predicted_prices(real_prices, salary_ratios)
-    differences = [pred - real for pred, real in zip(predicted_prices, real_prices)]
-    return pd.DataFrame({
-        "Year": real_prices.index,
-        f"{label} Difference": differences
-    }).set_index("Year")
+    return real_prices, predicted_prices
 
-# Prepare data for each category
-basket_diff = prepare_heatmap_data(basket_df, salary_df, "price for basic basket", "Basket")
-rent_diff = prepare_heatmap_data(rent_df, salary_df, "price for month", "Rent")
-fuel_diff = prepare_heatmap_data(fuel_df, salary_df, "price per liter", "Fuel")
-
-# Combine all differences into a single DataFrame
-heatmap_data = pd.concat([basket_diff, rent_diff, fuel_diff], axis=1)
+# Visualization function
+def plot_data(title, real_prices, predicted_prices):
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(real_prices.index, real_prices, marker='o', label="Real Prices", color='blue')
+    ax.plot(real_prices.index, predicted_prices, marker='o', linestyle='--', label="Predicted Prices", color='orange')
+    ax.set_title(title)
+    ax.set_xlabel("Year")
+    ax.set_ylabel("Price")
+    ax.set_xticks(range(2015, 2025))
+    ax.legend()
+    ax.grid(True)
+    return fig
 
 # Streamlit UI
-st.title("Real vs Simulated Prices Heatmap")
-st.sidebar.title("Filter Options")
+st.title("Price Trends vs. Salaries")
+st.sidebar.title("Select Category")
+category = st.sidebar.radio("Choose a category:", ("Fuel", "Basic Basket", "Rent"))
 
-# User selections for categories and years
-categories = st.sidebar.multiselect(
-    "Select categories to display:",
-    heatmap_data.columns.tolist(),
-    default=heatmap_data.columns.tolist()
-)
-year_range = st.sidebar.slider(
-    "Select year range:",
-    int(heatmap_data.index.min()),
-    int(heatmap_data.index.max()),
-    (int(heatmap_data.index.min()), int(heatmap_data.index.max()))
-)
+if category == "Fuel":
+    real_prices, predicted_prices = prepare_data(fuel_df, salary_df, "price per liter")
+    st.pyplot(plot_data("Fuel Prices vs. Predicted Prices", real_prices, predicted_prices))
 
-# Filter data based on user selections
-filtered_data = heatmap_data.loc[year_range[0]:year_range[1], categories]
+elif category == "Basic Basket":
+    real_prices, predicted_prices = prepare_data(basket_df, salary_df, "price for basic basket")
+    st.pyplot(plot_data("Basic Basket Prices vs. Predicted Prices", real_prices, predicted_prices))
 
-# Generate Heatmap
-st.write("### Heatmap of Real vs Simulated Price Differences")
-plt.figure(figsize=(12, 6))
-sns.heatmap(
-    filtered_data.transpose(),
-    annot=True, fmt=".2f", cmap="coolwarm", cbar=True,
-    linewidths=.5, linecolor="gray"
-)
-st.pyplot(plt)
+elif category == "Rent":
+    real_prices, predicted_prices = prepare_data(rent_df, salary_df, "price for month")
+    st.pyplot(plot_data("Rent Prices vs. Predicted Prices", real_prices, predicted_prices))
