@@ -1,11 +1,10 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import MinMaxScaler
 
 # URLs של קבצי הנתונים
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
-salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary1.xlsx"
+salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx"
 rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
 fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
 
@@ -25,43 +24,55 @@ basket_df["basket_units"] = salary_df["salary"] / basket_df["price for basic bas
 rent_df["rent_months"] = salary_df["salary"] / rent_df["price for month"]
 fuel_df["fuel_liters"] = salary_df["salary"] / fuel_df["price per liter"]
 
-# איסוף הנתונים לנורמליזציה
-data = pd.DataFrame({
-    "year": salary_df["year"],
-    "Basket Units": basket_df["basket_units"],
-    "Rent Months": rent_df["rent_months"],
-    "Fuel Liters": fuel_df["fuel_liters"]
-})
-
-# נורמליזציה
-scaler = MinMaxScaler()
-data_normalized = pd.DataFrame(scaler.fit_transform(data.iloc[:, 1:]), columns=data.columns[1:])
-data_normalized.insert(0, "Year", data["year"])
-
 # ממשק Streamlit
-st.title("Normalized Purchasing Power Analysis")
-st.sidebar.title("Select Categories")
+st.title("Purchasing Power Analysis Without Normalization")
+st.sidebar.title("Filters")
 
-# בחירת קטגוריות
+# בחירת קטגוריות להצגה
 categories = st.sidebar.multiselect(
     "Select categories to display:",
-    options=["Basket Units", "Rent Months", "Fuel Liters"],
-    default=["Basket Units", "Rent Months", "Fuel Liters"]
+    options=["basket_units", "rent_months", "fuel_liters"],
+    default=["basket_units", "rent_months", "fuel_liters"]
 )
 
-# גרף
-fig, ax = plt.subplots(figsize=(10, 6))
-for category in categories:
-    ax.plot(data_normalized["Year"], data_normalized[category], label=category, marker='o')
+# בחירת שנים להצגה
+start_year, end_year = st.sidebar.slider(
+    "Select Year Range:",
+    int(salary_df["year"].min()),
+    int(salary_df["year"].max()),
+    (int(salary_df["year"].min()), int(salary_df["year"].max()))
+)
 
-ax.set_title("Normalized Purchasing Power Over Time")
+# סינון נתונים לפי שנים
+filtered_salary = salary_df[(salary_df["year"] >= start_year) & (salary_df["year"] <= end_year)]
+filtered_basket = basket_df[(basket_df["year"] >= start_year) & (basket_df["year"] <= end_year)]
+filtered_rent = rent_df[(rent_df["year"] >= start_year) & (rent_df["year"] <= end_year)]
+filtered_fuel = fuel_df[(fuel_df["year"] >= start_year) & (fuel_df["year"] <= end_year)]
+
+# הכנה לשרטוט הנתונים
+data_to_plot = pd.DataFrame({"Year": filtered_salary["year"]})
+if "basket_units" in categories:
+    data_to_plot["Basket Units"] = filtered_basket["basket_units"]
+if "rent_months" in categories:
+    data_to_plot["Rent Months"] = filtered_rent["rent_months"]
+if "fuel_liters" in categories:
+    data_to_plot["Fuel Liters"] = filtered_fuel["fuel_liters"]
+
+# גרף קווי להצגת הנתונים
+fig, ax = plt.subplots(figsize=(10, 6))
+for column in data_to_plot.columns[1:]:
+    ax.plot(data_to_plot["Year"], data_to_plot[column], marker="o", label=column)
+ax.set_title("Purchasing Power Over Time")
 ax.set_xlabel("Year")
-ax.set_ylabel("Normalized Units (0-1)")
+ax.set_ylabel("Units Affordable")
 ax.legend()
 ax.grid(True)
 
+# הצגת הגרף
 st.pyplot(fig)
 
-# תובנות
+# הצגת תובנות
 st.subheader("Insights")
-st.write("The graph shows normalized purchasing power for each category, allowing for direct comparison between them, regardless of scale differences.")
+st.write("""
+This graph displays the purchasing power over time without applying normalization. Each category reflects its actual units affordable based on the given salaries and prices.
+""")
