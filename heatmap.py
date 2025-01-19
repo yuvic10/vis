@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+import matplotlib.pyplot as plt
+import numpy as np
 
 # URLs of the datasets
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
@@ -27,43 +28,31 @@ basket_df["basket_percentage"] = calculate_percentage_of_salary(basket_df["price
 rent_df["rent_percentage"] = calculate_percentage_of_salary(rent_df["price for month"], salary_df["salary"])
 fuel_df["fuel_percentage"] = calculate_percentage_of_salary(fuel_df["price per liter"], salary_df["salary"])
 
-# Combine data into a single DataFrame
-combined_data = pd.DataFrame({
-    "Year": basket_df["year"],
+# Streamlit UI
+st.title("Radial Chart: Percentage of Salary by Category")
+
+# Select category
+category_options = {
     "Basket": basket_df["basket_percentage"],
     "Rent": rent_df["rent_percentage"],
     "Fuel": fuel_df["fuel_percentage"]
-})
+}
+selected_category = st.selectbox("Select a category to display:", list(category_options.keys()))
 
-# Streamlit UI
-st.title("Interactive Category Percentage Visualization")
+# Prepare data for the selected category
+selected_data = category_options[selected_category]
+years = basket_df["year"]
 
-# Select a category
-selected_category = st.selectbox("Choose a category to display:", ["Basket", "Rent", "Fuel"])
+# Create radial chart
+fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={"projection": "polar"})
+angles = np.linspace(0, 2 * np.pi, len(years), endpoint=False)
+bars = ax.bar(angles, selected_data, width=0.4, color=plt.cm.viridis(selected_data / max(selected_data)), alpha=0.8)
 
-# Prepare data for selected category
-selected_data = combined_data[["Year", selected_category]].rename(columns={selected_category: "Percentage"})
+# Add year labels
+ax.set_xticks(angles)
+ax.set_xticklabels(years)
+ax.set_yticks([])  # Remove radial grid lines
+ax.set_title(f"{selected_category} Percentage of Salary Over Time", va="bottom")
 
-# Create an interactive line/bar chart
-chart_type = st.radio("Choose chart type:", ["Line Chart", "Bar Chart"])
-
-if chart_type == "Line Chart":
-    fig = px.line(
-        selected_data,
-        x="Year",
-        y="Percentage",
-        title=f"{selected_category} Percentage of Salary Over Time",
-        markers=True,
-        labels={"Percentage": "Percentage of Salary (%)", "Year": "Year"}
-    )
-else:
-    fig = px.bar(
-        selected_data,
-        x="Year",
-        y="Percentage",
-        title=f"{selected_category} Percentage of Salary Over Time",
-        labels={"Percentage": "Percentage of Salary (%)", "Year": "Year"}
-    )
-
-fig.update_traces(marker=dict(size=10), line=dict(width=3))  # Styling
-st.plotly_chart(fig)
+# Display chart
+st.pyplot(fig)
