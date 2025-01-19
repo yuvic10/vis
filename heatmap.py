@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+from sklearn.preprocessing import MinMaxScaler
 
 # URLs של קבצי הנתונים
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
@@ -24,51 +25,43 @@ basket_df["basket_units"] = salary_df["salary"] / basket_df["price for basic bas
 rent_df["rent_months"] = salary_df["salary"] / rent_df["price for month"]
 fuel_df["fuel_liters"] = salary_df["salary"] / fuel_df["price per liter"]
 
-# ממשק Streamlit
-st.title("Purchasing Power Analysis")
-st.sidebar.title("Select Categories to Display")
+# איסוף הנתונים לנורמליזציה
+data = pd.DataFrame({
+    "year": salary_df["year"],
+    "Basket Units": basket_df["basket_units"],
+    "Rent Months": rent_df["rent_months"],
+    "Fuel Liters": fuel_df["fuel_liters"]
+})
 
-# בחירת קטגוריות להצגה
+# נורמליזציה
+scaler = MinMaxScaler()
+data_normalized = pd.DataFrame(scaler.fit_transform(data.iloc[:, 1:]), columns=data.columns[1:])
+data_normalized.insert(0, "Year", data["year"])
+
+# ממשק Streamlit
+st.title("Normalized Purchasing Power Analysis")
+st.sidebar.title("Select Categories")
+
+# בחירת קטגוריות
 categories = st.sidebar.multiselect(
     "Select categories to display:",
-    options=["basket_units", "rent_months", "fuel_liters"],
-    default=["basket_units", "rent_months", "fuel_liters"]
+    options=["Basket Units", "Rent Months", "Fuel Liters"],
+    default=["Basket Units", "Rent Months", "Fuel Liters"]
 )
 
-# סינון נתונים לפי שנים
-start_year, end_year = st.sidebar.slider(
-    "Select Year Range:",
-    int(salary_df["year"].min()),
-    int(salary_df["year"].max()),
-    (int(salary_df["year"].min()), int(salary_df["year"].max()))
-)
-
-filtered_basket = basket_df[(basket_df["year"] >= start_year) & (basket_df["year"] <= end_year)]
-filtered_rent = rent_df[(rent_df["year"] >= start_year) & (rent_df["year"] <= end_year)]
-filtered_fuel = fuel_df[(fuel_df["year"] >= start_year) & (fuel_df["year"] <= end_year)]
-
-# גרף השוואתי
+# גרף
 fig, ax = plt.subplots(figsize=(10, 6))
+for category in categories:
+    ax.plot(data_normalized["Year"], data_normalized[category], label=category, marker='o')
 
-if "basket_units" in categories:
-    ax.plot(filtered_basket["year"], filtered_basket["basket_units"], label="Basket Units", marker='o', color='blue')
-if "rent_months" in categories:
-    ax.plot(filtered_rent["year"], filtered_rent["rent_months"], label="Rent Months", marker='o', color='orange')
-if "fuel_liters" in categories:
-    ax.plot(filtered_fuel["year"], filtered_fuel["fuel_liters"], label="Fuel Liters", marker='o', color='green')
-
-ax.set_title("Purchasing Power Over Time")
+ax.set_title("Normalized Purchasing Power Over Time")
 ax.set_xlabel("Year")
-ax.set_ylabel("Units Affordable")
+ax.set_ylabel("Normalized Units (0-1)")
 ax.legend()
 ax.grid(True)
 
-# הצגת הגרף
 st.pyplot(fig)
 
-# הסבר מילולי
-st.write("### Insights")
-st.write(
-    "This graph shows how many units of each category (basket, rent, fuel) can be purchased with the monthly salary over time. "
-    "It helps to understand which category contributes more to the erosion of purchasing power and how affordability changes over the years."
-)
+# תובנות
+st.subheader("Insights")
+st.write("The graph shows normalized purchasing power for each category, allowing for direct comparison between them, regardless of scale differences.")
