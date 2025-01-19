@@ -11,6 +11,7 @@ def load_data():
     basket_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx")
     return salary_df, rent_df, fuel_df, basket_df
 
+
 # Load the data
 salary_df, rent_df, fuel_df, basket_df = load_data()
 
