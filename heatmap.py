@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
 
 # URLs של קבצי ה-Excel
@@ -11,7 +10,7 @@ rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
 fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
 
 # כותרת האפליקציה
-st.title("Real vs Simulated Prices Heatmap")
+st.title("Real vs Simulated Prices Line Chart")
 
 try:
     # קריאת נתוני הסל הבסיסי
@@ -42,8 +41,8 @@ try:
         1 + salary_data["growth rate"].cumsum()
     )
 
-    # מיזוג הנתונים ליצירת Heatmap
-    heatmap_data = pd.DataFrame({
+    # מיזוג הנתונים ליצירת גרף קווי
+    line_chart_data = pd.DataFrame({
         "Year": basket_data["year"],
         "Real Basket Price": basket_data["price for basic basket"],
         "Simulated Basket Price": basket_data["simulated price for basket"],
@@ -53,14 +52,25 @@ try:
         "Simulated Fuel Price": fuel_data["simulated price per liter"],
     })
 
-    # יצירת Heatmap
-    st.write("### Heatmap of Real vs Simulated Prices")
-    plt.figure(figsize=(12, 6))
-    sns.heatmap(
-        heatmap_data.set_index("Year").transpose(),
-        annot=True, fmt=".2f", cmap="coolwarm", cbar=True
-    )
-    st.pyplot(plt)
+    # יצירת ממשק לבחירת נתונים להצגה
+    st.write("### Select Data to Display")
+    options = list(line_chart_data.columns[1:])
+    selected_options = st.multiselect("Select data to include in the line chart:", options, default=options)
+
+    # הצגת גרף קווי
+    if selected_options:
+        st.write("### Line Chart of Real vs Simulated Prices")
+        plt.figure(figsize=(12, 6))
+        for option in selected_options:
+            plt.plot(line_chart_data["Year"], line_chart_data[option], label=option)
+        plt.xlabel("Year")
+        plt.ylabel("Price")
+        plt.title("Real vs Simulated Prices Over Time")
+        plt.legend()
+        plt.grid(True)
+        st.pyplot(plt)
+    else:
+        st.warning("Please select at least one data series to display.")
 
 except Exception as e:
     st.error(f"An error occurred: {e}")
