@@ -22,41 +22,28 @@ basket_df, rent_df, fuel_df, salary_df = load_data()
 # Calculate percentage of salary spent on each category
 basket_df["basket_percent"] = (basket_df["price for basic basket"] / salary_df["salary"]) * 100
 rent_df["rent_percent"] = (rent_df["price for month"] / salary_df["salary"]) * 100
-fuel_df["fuel_percent"] = (fuel_df["price per liter"] * 100) / salary_df["salary"]
-
-# Prepare data for visualization
-percent_data = pd.DataFrame({
-    "year": salary_df["year"],
-    "Basket": basket_df["basket_percent"],
-    "Rent": rent_df["rent_percent"],
-    "Fuel": fuel_df["fuel_percent"],
-})
 
 # Streamlit UI
-st.title("Percentage of Salary Spent on Each Category Over Time")
+st.title("Correlation Between Two Categories")
 
-# Create a plot
-fig, ax = plt.subplots(figsize=(10, 8))
-categories = ["Basket", "Rent", "Fuel"]
+# Select categories for comparison
+category_x = st.selectbox("Select Category for X-axis:", ["Basket", "Rent"])
+category_y = st.selectbox("Select Category for Y-axis:", ["Basket", "Rent"])
 
-for i, category in enumerate(categories):
-    ax.scatter(
-        percent_data["year"], 
-        [i + 1] * len(percent_data), 
-        s=100,  # Fixed size for all points
-        c="green", 
-        label=category,
-        alpha=0.7,
-    )
+# Map selected categories to their data
+category_data = {
+    "Basket": basket_df["basket_percent"],
+    "Rent": rent_df["rent_percent"],
+}
+x_data = category_data[category_x]
+y_data = category_data[category_y]
 
-# Customization
-ax.set_yticks(range(1, len(categories) + 1))
-ax.set_yticklabels(categories)
-ax.set_xticks(percent_data["year"])
-ax.set_title("Percentage of Salary Spent on Each Category Over Time", fontsize=14)
-ax.set_xlabel("Year")
-ax.set_ylabel("Category")
-plt.grid(axis="x", linestyle="--", alpha=0.7)
-plt.legend()
+# Create a scatter plot
+fig, ax = plt.subplots(figsize=(8, 6))
+scatter = ax.scatter(x_data, y_data, c="blue", alpha=0.7, edgecolors="k")
+ax.set_title(f"Correlation Between {category_x} and {category_y}", fontsize=14)
+ax.set_xlabel(f"{category_x} (% of Salary)", fontsize=12)
+ax.set_ylabel(f"{category_y} (% of Salary)", fontsize=12)
+ax.grid(True, linestyle="--", alpha=0.6)
 
 st.pyplot(fig)
