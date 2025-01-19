@@ -7,7 +7,7 @@ import numpy as np
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
 rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
 fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
-salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary1.xlsx"
+salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx"
 
 # Load the data
 @st.cache_data
@@ -29,7 +29,7 @@ rent_df["rent_percentage"] = calculate_percentage_of_salary(rent_df["price for m
 fuel_df["fuel_percentage"] = calculate_percentage_of_salary(fuel_df["price per liter"], salary_df["salary"])
 
 # Streamlit UI
-st.title("Vertical Lines Visualization for Category Percentages")
+st.title("Artistic Shape Visualization for Category Percentages")
 
 # Select category
 category_options = {
@@ -43,22 +43,26 @@ selected_category = st.selectbox("Select a category to display:", list(category_
 selected_data = category_options[selected_category]
 years = basket_df["year"]
 
-# Create the vertical lines plot
-fig, ax = plt.subplots(figsize=(8, 10))
+# Create artistic visualization
+fig, ax = plt.subplots(figsize=(12, 8))
 
 for i, value in enumerate(selected_data):
-    ax.plot([i, i], [0, value], color="teal", linewidth=2, alpha=0.7)  # Vertical line
-    ax.scatter(i, value, color="teal", s=100, zorder=5)  # Circle at the top
-    ax.text(i, value + 1, f"{value:.1f}%", ha="center", fontsize=10, color="black")  # Percentage label
+    # Create the curve-like shape for each year
+    x = np.linspace(i - 0.4, i + 0.4, 100)
+    y = value * np.sin((x - i) * np.pi) + value / 2  # Shape resembling a curve
+    ax.fill_between(x, 0, y, color="teal", alpha=0.6)
 
-# Set labels and style
+    # Add a label at the peak of each curve
+    ax.text(i, value + 1, f"{value:.1f}%", ha="center", fontsize=10, color="black", fontweight="bold")
+
+# Set labels and styling
 ax.set_xticks(range(len(years)))
-ax.set_xticklabels(years, fontsize=10)
+ax.set_xticklabels(years, fontsize=10, rotation=45)
+ax.set_yticks([])
 ax.set_xlim(-0.5, len(years) - 0.5)
-ax.set_ylim(0, selected_data.max() + 10)
-ax.set_title(f"{selected_category} Percentage of Salary Over Time", fontsize=14, fontweight="bold")
-ax.set_ylabel("Percentage of Salary (%)")
-ax.set_xlabel("Year")
+ax.set_ylim(0, max(selected_data) + 10)
+ax.set_title(f"{selected_category} Percentage of Salary Over Time", fontsize=16, fontweight="bold")
+ax.axis("off")  # Hide the axis for a cleaner look
 
 # Display the chart
 st.pyplot(fig)
