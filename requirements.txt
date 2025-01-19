@@ -3,10 +3,3 @@ wordcloud
 matplotlib
 openpyxl
 seaborn
-sklearn.preprocessing 
-pandas==1.5.3
-numpy==1.23.5
-matplotlib==3.6.2
-seaborn==0.12.1
-openpyxl==3.0.9
-streamlit==1.13.0
