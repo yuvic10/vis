@@ -45,12 +45,6 @@ selected_categories = st.multiselect("Select categories to display:", ["Basket",
 # Filter data
 filtered_data = sankey_data[sankey_data["Year"].isin(selected_years)]
 
-# Normalize values to emphasize differences
-def normalize_values(values):
-    min_val = min(values)
-    max_val = max(values)
-    return [(value - min_val) / (max_val - min_val) + 0.1 for value in values]  # Add 0.1 to ensure visibility
-
 # Create Sankey diagram inputs
 labels = ["Salary"] + [f"{category} ({year})" for year in selected_years for category in selected_categories]
 sources = []
@@ -63,7 +57,7 @@ for year in selected_years:
         targets.append(labels.index(f"{category} ({year})"))
         category_values = filtered_data.loc[filtered_data["Year"] == year, category].values
         if len(category_values) > 0:
-            values.append(category_values[0])  # Append raw value (not normalized)
+            values.append(category_values[0])  # Use the exact percentage value
 
 # Create Sankey diagram
 fig = go.Figure(go.Sankey(
@@ -77,9 +71,14 @@ fig = go.Figure(go.Sankey(
     link=dict(
         source=sources,
         target=targets,
-        value=values
+        value=values,
+        color="gray"  # Optional: You can add color differentiation here
     )
 ))
 
-fig.update_layout(title_text="Sankey Diagram: Salary Breakdown by Categories", font_size=10)
+fig.update_layout(
+    title_text="Sankey Diagram: Salary Breakdown by Categories Over Time",
+    font_size=10
+)
+
 st.plotly_chart(fig)
