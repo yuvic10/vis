@@ -49,38 +49,13 @@ values = selected_data.tolist()
 angles += angles[:1]  # Closing the circle
 values += values[:1]
 
-# Define colors for each year
-colors = plt.cm.viridis(np.linspace(0, 1, len(years)))
-
 fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={"polar": True})
-bars = ax.bar(
-    angles[:-1],  # Angles for the bars
-    selected_data,  # Values for the bars
-    width=2 * np.pi / len(years),  # Width of each bar
-    color=colors,  # Assign colors for each bar
-    edgecolor="black",
-    alpha=0.8,
-)
-
-# Add text in the center
-total_percentage = selected_data.sum()
-ax.text(
-    0,
-    0,
-    f"{total_percentage:.1f}%",
-    ha="center",
-    va="center",
-    fontsize=20,
-    color="black",
-    fontweight="bold",
-)
-
-# Remove the circular frame
-ax.spines["polar"].set_visible(False)
+ax.fill(angles, values, color="teal", alpha=0.6)
+ax.plot(angles, values, color="black", linewidth=1.5)
 ax.set_yticks([])
 ax.set_xticks(angles[:-1])
 ax.set_xticklabels(years)
-ax.set_title(f"{selected_category} Percentage of Salary Over Time", va="bottom", fontsize=14)
+ax.set_title(f"{selected_category} Percentage of Salary Over Time", va="bottom")
 
 # Display the chart
 st.pyplot(fig)
