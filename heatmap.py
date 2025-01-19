@@ -37,21 +37,26 @@ if basket_df is not None and rent_df is not None and fuel_df is not None and sal
         fuel_df["fuel_percentage"] = calculate_percentage_of_salary(fuel_df["price per liter"], salary_df["salary"])
 
         # Combine data into a single DataFrame
-        sunburst_data = pd.DataFrame({
-            "Year": list(basket_df["year"]) + list(rent_df["year"]) + list(fuel_df["year"]),
-            "Category": ["Basket"] * len(basket_df) + ["Rent"] * len(rent_df) + ["Fuel"] * len(fuel_df),
-            "Percentage": list(basket_df["basket_percentage"]) + list(rent_df["rent_percentage"]) + list(fuel_df["fuel_percentage"])
-        })
+        basket_data = pd.DataFrame({"Year": basket_df["year"], "Percentage": basket_df["basket_percentage"], "Category": "Basket"})
+        rent_data = pd.DataFrame({"Year": rent_df["year"], "Percentage": rent_df["rent_percentage"], "Category": "Rent"})
+        fuel_data = pd.DataFrame({"Year": fuel_df["year"], "Percentage": fuel_df["fuel_percentage"], "Category": "Fuel"})
+        combined_data = pd.concat([basket_data, rent_data, fuel_data], ignore_index=True)
 
         # Streamlit UI
         st.title("Sunburst Chart: Percentage of Salary Spent on Categories")
 
+        # Add category selection
+        selected_category = st.selectbox("Select a category:", ["Basket", "Rent", "Fuel"])
+        
+        # Filter data by selected category
+        filtered_data = combined_data[combined_data["Category"] == selected_category]
+
         # Create and display Sunburst chart
         fig = px.sunburst(
-            sunburst_data,
+            filtered_data,
             path=["Category", "Year"],
             values="Percentage",
-            title="Percentage of Salary Spent on Categories Over Time",
+            title=f"Percentage of Salary Spent on {selected_category} Over Time",
             color="Percentage",
             color_continuous_scale="Viridis"
         )
