@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 # URLs of the datasets
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
 rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
 fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
-salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary1.xlsx"
 
 # Load the data
 @st.cache_data
@@ -14,42 +14,63 @@ def load_data():
     basket_df = pd.read_excel(basket_file_url, engine="openpyxl")
     rent_df = pd.read_excel(rent_file_url, engine="openpyxl", sheet_name="Sheet2")
     fuel_df = pd.read_excel(fuel_file_url, engine="openpyxl")
-    salary_df = pd.read_excel(salary_file_url, engine="openpyxl")
-    return basket_df, rent_df, fuel_df, salary_df
+    return basket_df, rent_df, fuel_df
 
-basket_df, rent_df, fuel_df, salary_df = load_data()
+basket_df, rent_df, fuel_df = load_data()
 
-# Calculate percentage of salary spent on each category
-basket_df["basket_percent"] = (basket_df["price for basic basket"] / salary_df["salary"]) * 100
-rent_df["rent_percent"] = (rent_df["price for month"] / salary_df["salary"]) * 100
-fuel_df["fuel_percent"] = (fuel_df["price per liter"] / salary_df["salary"]) * 100
+# Calculate growth rates for each category
+def calculate_growth_rate(data, column):
+    return data[column].pct_change().fillna(0) * 100
 
-categories = {
-    "Basket": basket_df["basket_percent"],
-    "Rent": rent_df["rent_percent"],
-    "Fuel": fuel_df["fuel_percent"],
-}
-years = basket_df["year"]
+basket_df["basket_growth"] = calculate_growth_rate(basket_df, "price for basic basket")
+rent_df["rent_growth"] = calculate_growth_rate(rent_df, "price for month")
+fuel_df["fuel_growth"] = calculate_growth_rate(fuel_df, "price per liter")
+
+# Combine growth data into a single DataFrame
+growth_data = pd.DataFrame({
+    "year": basket_df["year"],
+    "Basket Growth": basket_df["basket_growth"],
+    "Rent Growth": rent_df["rent_growth"],
+    "Fuel Growth": fuel_df["fuel_growth"],
+})
 
 # Streamlit UI
-st.title("Percentage of Salary Spent on Each Category")
+st.title("Correlation Between Categories Over Time")
 
-fig, axes = plt.subplots(1, 3, figsize=(15, 5), sharey=True)
+# Dropdowns for selecting categories
+category_x = st.selectbox("Select Category for X-Axis:", ["Basket Growth", "Rent Growth", "Fuel Growth"])
+category_y = st.selectbox("Select Category for Y-Axis:", ["Basket Growth", "Rent Growth", "Fuel Growth"])
 
-for ax, (category, data) in zip(axes, categories.items()):
-    scatter = ax.scatter(
-        years,
-        [category] * len(years),
-        s=data * 10,  # Size of the circles
-        c=data,  # Color intensity
-        cmap="Greens",
-        alpha=0.7,
-        edgecolors="k"
+# Calculate correlation between the selected categories
+correlation = np.corrcoef(growth_data[category_x], growth_data[category_y])[0, 1]
+
+# Scatter plot
+fig, ax = plt.subplots(figsize=(8, 6))
+scatter = ax.scatter(
+    growth_data[category_x],
+    growth_data[category_y],
+    c=np.abs(growth_data[category_x] - growth_data[category_y]),  # Color based on differences
+    cmap="coolwarm",
+    s=100,  # Size of the points
+    edgecolors="k",
+    alpha=0.8,
+)
+
+# Add color bar
+cbar = fig.colorbar(scatter, ax=ax, label="Difference Between Categories (%)")
+ax.set_title(f"Scatter Plot: {category_x} vs {category_y}\nCorrelation: {correlation:.2f}")
+ax.set_xlabel(category_x)
+ax.set_ylabel(category_y)
+
+# Add year labels to points
+for i, year in enumerate(growth_data["year"]):
+    ax.text(
+        growth_data[category_x][i],
+        growth_data[category_y][i],
+        str(year),
+        fontsize=9,
+        ha="right",
+        va="bottom",
     )
-    ax.set_title(category)
-    ax.set_xticks(years)
-    ax.set_yticks([])
-    ax.set_xlabel("Year")
 
-fig.colorbar(scatter, ax=axes, orientation="horizontal", label="Percentage of Salary")
 st.pyplot(fig)
