@@ -1,12 +1,12 @@
 import streamlit as st
 import pandas as pd
-import networkx as nx
 import matplotlib.pyplot as plt
 
 # URLs of the datasets
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
 rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
 fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
+salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx"
 
 # Load the data
 @st.cache_data
@@ -14,61 +14,51 @@ def load_data():
     basket_df = pd.read_excel(basket_file_url, engine="openpyxl")
     rent_df = pd.read_excel(rent_file_url, engine="openpyxl", sheet_name="Sheet2")
     fuel_df = pd.read_excel(fuel_file_url, engine="openpyxl")
-    return basket_df, rent_df, fuel_df
+    salary_df = pd.read_excel(salary_file_url, engine="openpyxl")
+    return basket_df, rent_df, fuel_df, salary_df
 
-basket_df, rent_df, fuel_df = load_data()
+basket_df, rent_df, fuel_df, salary_df = load_data()
 
-# Calculate growth rates for each category
-def calculate_growth_rate(data, column):
-    return data[column].pct_change().fillna(0) * 100
+# Calculate percentage of salary spent on each category
+basket_df["basket_percent"] = (basket_df["price for basic basket"] / salary_df["salary"]) * 100
+rent_df["rent_percent"] = (rent_df["price for month"] / salary_df["salary"]) * 100
+fuel_df["fuel_percent"] = (fuel_df["price per liter"] * 100) / salary_df["salary"]
 
-basket_df["basket_growth"] = calculate_growth_rate(basket_df, "price for basic basket")
-rent_df["rent_growth"] = calculate_growth_rate(rent_df, "price for month")
-fuel_df["fuel_growth"] = calculate_growth_rate(fuel_df, "price per liter")
-
-# Combine growth data into a single DataFrame
-growth_data = pd.DataFrame({
-    "year": basket_df["year"],
-    "Basket Growth": basket_df["basket_growth"],
-    "Rent Growth": rent_df["rent_growth"],
-    "Fuel Growth": fuel_df["fuel_growth"],
+# Prepare data for visualization
+percent_data = pd.DataFrame({
+    "year": salary_df["year"],
+    "Basket": basket_df["basket_percent"],
+    "Rent": rent_df["rent_percent"],
+    "Fuel": fuel_df["fuel_percent"],
 })
 
-# Calculate correlations
-correlation_matrix = growth_data.drop(columns=["year"]).corr()
-
 # Streamlit UI
-st.title("Network Graph of Correlations Between Categories")
+st.title("Percentage of Salary Spent on Categories Over Years")
 
-# Create a Network Graph
-def plot_network_graph(correlation_matrix):
-    G = nx.Graph()
+# Create a plot
+fig, ax = plt.subplots(figsize=(10, 6))
+categories = ["Basket", "Rent", "Fuel"]
 
-    # Add nodes and edges
-    for i, category1 in enumerate(correlation_matrix.columns):
-        for j, category2 in enumerate(correlation_matrix.columns):
-            if i < j:  # Only use upper triangle of the correlation matrix
-                weight = correlation_matrix.iloc[i, j]
-                if abs(weight) > 0.3:  # Add only significant correlations
-                    G.add_edge(category1, category2, weight=weight)
-
-    pos = nx.circular_layout(G)  # Circular layout for better visualization
-    plt.figure(figsize=(8, 8))
-
-    # Draw the nodes and edges
-    nx.draw(
-        G,
-        pos,
-        with_labels=True,
-        node_color="skyblue",
-        node_size=2000,
-        edge_color=[
-            "red" if G[u][v]["weight"] > 0 else "blue" for u, v in G.edges()
-        ],
-        width=[abs(G[u][v]["weight"]) * 2 for u, v in G.edges()],
-        font_size=10,
+for i, category in enumerate(categories):
+    ax.scatter(
+        percent_data["year"], 
+        [i + 1] * len(percent_data), 
+        c=percent_data[category], 
+        cmap="Greens", 
+        s=percent_data[category] * 10,  # Size of points proportional to percentage
+        label=category,
+        alpha=0.7,
     )
-    plt.title("Network Graph of Correlations", fontsize=16)
-    st.pyplot(plt)
 
-plot_network_graph(correlation_matrix)
+# Customization
+ax.set_yticks(range(1, len(categories) + 1))
+ax.set_yticklabels(categories)
+ax.set_xticks(percent_data["year"])
+ax.set_title("Percentage of Salary Spent on Each Category Over Time", fontsize=14)
+ax.set_xlabel("Year")
+ax.set_ylabel("Category")
+plt.colorbar(ax.collections[0], ax=ax, label="Percentage of Salary")
+plt.grid(axis="x", linestyle="--", alpha=0.7)
+plt.legend()
+
+st.pyplot(fig)
