@@ -24,25 +24,29 @@ try:
     basket_data["price for basic basket"] = basket_data["price for basic basket"].round(3)
     fuel_data["price per liter"] = fuel_data["price per liter"].round(3)
 
-    # Calculate year-over-year growth rates for salaries
-    salary_data["growth rate"] = salary_data["salary"].pct_change().fillna(0)
+    # Calculate yearly ratios for salaries manually
+    salary_ratios = [1.0]  # Start with 1 for the first year
+    for i in range(1, len(salary_data)):
+        ratio = salary_data["salary"][i] / salary_data["salary"][i - 1]
+        salary_ratios.append(ratio)
 
-    # Compute simulated prices based on the previous year's simulated price and growth rate
-    def compute_simulated_prices(real_prices, growth_rates):
-        simulated_prices = [real_prices.iloc[0]]
+    # Function to calculate predicted prices manually
+    def calculate_predicted_prices(real_prices, ratios):
+        predicted_prices = [real_prices.iloc[0]]
         for i in range(1, len(real_prices)):
-            simulated_price = simulated_prices[-1] * (1 + growth_rates.iloc[i])
-            simulated_prices.append(simulated_price)
-        return simulated_prices
+            predicted = predicted_prices[-1] * ratios[i]
+            predicted_prices.append(predicted)
+        return predicted_prices
 
-    basket_data["simulated price for basket"] = compute_simulated_prices(
-        basket_data["price for basic basket"], salary_data["growth rate"]
+    # Compute simulated prices for each dataset
+    basket_data["simulated price for basket"] = calculate_predicted_prices(
+        basket_data["price for basic basket"], salary_ratios
     )
-    rent_data["simulated price for month"] = compute_simulated_prices(
-        rent_data["price for month"], salary_data["growth rate"]
+    rent_data["simulated price for month"] = calculate_predicted_prices(
+        rent_data["price for month"], salary_ratios
     )
-    fuel_data["simulated price per liter"] = compute_simulated_prices(
-        fuel_data["price per liter"], salary_data["growth rate"]
+    fuel_data["simulated price per liter"] = calculate_predicted_prices(
+        fuel_data["price per liter"], salary_ratios
     )
 
     # Create a heatmap-ready DataFrame
