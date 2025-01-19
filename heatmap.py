@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import networkx as nx
 import matplotlib.pyplot as plt
 
 # Load the data
@@ -19,41 +18,34 @@ def load_data():
     fuel_df["growth"] = fuel_df["price per liter"].pct_change() * 100
 
     growth_data = pd.DataFrame({
-        "Basket Growth": basket_df["growth"],
-        "Rent Growth": rent_df["growth"],
-        "Fuel Growth": fuel_df["growth"]
+        "Basket Growth": basket_df["growth"].dropna(),
+        "Rent Growth": rent_df["growth"].dropna(),
+        "Fuel Growth": fuel_df["growth"].dropna()
     })
 
     return growth_data
 
 growth_data = load_data()
 
-# Compute correlations
-correlation_matrix = growth_data.corr()
+# Streamlit UI
+st.title("Histogram Overlay: Comparing Two Categories")
+st.sidebar.title("Select Categories")
 
-# Create Correlation Wheel
-st.title("Correlation Wheel")
+# Dropdowns for category selection
+categories = growth_data.columns.tolist()
+category1 = st.sidebar.selectbox("Select First Category:", categories)
+category2 = st.sidebar.selectbox("Select Second Category:", [cat for cat in categories if cat != category1])
 
-fig, ax = plt.subplots(figsize=(8, 8))
-G = nx.Graph()
-
-# Add nodes and edges
-for col in correlation_matrix.columns:
-    G.add_node(col)
-
-for i in correlation_matrix.columns:
-    for j in correlation_matrix.columns:
-        if i != j:
-            weight = abs(correlation_matrix.loc[i, j])
-            if weight > 0.2:  # Include only strong correlations
-                G.add_edge(i, j, weight=weight)
-
-# Circular layout
-pos = nx.circular_layout(G)
-nx.draw_networkx_nodes(G, pos, ax=ax, node_size=2000, node_color="skyblue")
-nx.draw_networkx_edges(
-    G, pos, ax=ax, width=[d["weight"] * 5 for _, _, d in G.edges(data=True)], edge_color="gray"
+# Plot the overlayed histograms
+fig, ax = plt.subplots(figsize=(8, 6))
+ax.hist(
+    growth_data[category1], bins=10, alpha=0.6, label=category1, color="blue", edgecolor="black"
 )
-nx.draw_networkx_labels(G, pos, ax=ax, font_size=10, font_color="black")
+ax.hist(
+    growth_data[category2], bins=10, alpha=0.6, label=category2, color="orange", edgecolor="black"
+)
+ax.set_title(f"Histogram Overlay: {category1} vs {category2}")
+ax.set_xlabel("Growth Rate (%)")
+ax.set_ylabel("Frequency")
+ax.legend()
 st.pyplot(fig)
-
