@@ -24,37 +24,42 @@ try:
     basket_data["price for basic basket"] = basket_data["price for basic basket"].round(3)
     fuel_data["price per liter"] = fuel_data["price per liter"].round(3)
 
-    # Calculate yearly ratios for salaries manually
-    salary_ratios = [1.0]  # Start with 1 for the first year
-    for i in range(1, len(salary_data)):
-        ratio = salary_data["salary"][i] / salary_data["salary"][i - 1]
-        salary_ratios.append(ratio)
+    # Calculate yearly ratios (slopes) for salaries
+    def calculate_salary_ratios(df):
+        ratios = [1]  # The first year ratio is always 1
+        for i in range(1, len(df)):
+            ratios.append(df["salary"].iloc[i] / df["salary"].iloc[i - 1])
+        df["ratio"] = ratios
+        return df
 
-    # Function to calculate predicted prices manually
-    def calculate_predicted_prices(real_prices, ratios):
-        predicted_prices = [real_prices.iloc[0]]
+    salary_data = calculate_salary_ratios(salary_data)
+
+    # Calculate predicted prices based on salary ratios
+    def calculate_predicted_prices(real_prices, salary_ratios):
+        predicted_prices = [real_prices.iloc[0]]  # Start with the first real price
         for i in range(1, len(real_prices)):
-            predicted = predicted_prices[-1] * ratios[i]
+            predicted = predicted_prices[-1] * salary_ratios[i]
             predicted_prices.append(predicted)
         return predicted_prices
 
-    # Compute simulated prices for each dataset
-    basket_data["simulated price for basket"] = calculate_predicted_prices(
-        basket_data["price for basic basket"], salary_ratios
-    )
-    rent_data["simulated price for month"] = calculate_predicted_prices(
-        rent_data["price for month"], salary_ratios
-    )
-    fuel_data["simulated price per liter"] = calculate_predicted_prices(
-        fuel_data["price per liter"], salary_ratios
-    )
+    # Prepare data for visualization
+    def prepare_data(real_df, salary_df, value_column):
+        real_prices = real_df.set_index("year")[value_column]
+        salary_ratios = salary_df.set_index("year")["ratio"].tolist()
+        predicted_prices = calculate_predicted_prices(real_prices, salary_ratios)
+        return real_prices, predicted_prices
+
+    # Calculate real and predicted prices for each category
+    basket_real, basket_predicted = prepare_data(basket_data, salary_data, "price for basic basket")
+    rent_real, rent_predicted = prepare_data(rent_data, salary_data, "price for month")
+    fuel_real, fuel_predicted = prepare_data(fuel_data, salary_data, "price per liter")
 
     # Create a heatmap-ready DataFrame
     heatmap_data = {
         "Year": basket_data["year"],
-        "Basket Difference": basket_data["simulated price for basket"] - basket_data["price for basic basket"],
-        "Rent Difference": rent_data["simulated price for month"] - rent_data["price for month"],
-        "Fuel Difference": fuel_data["simulated price per liter"] - fuel_data["price per liter"],
+        "Basket Difference": [p - r for p, r in zip(basket_predicted, basket_real)],
+        "Rent Difference": [p - r for p, r in zip(rent_predicted, rent_real)],
+        "Fuel Difference": [p - r for p, r in zip(fuel_predicted, fuel_real)],
     }
     heatmap_df = pd.DataFrame(heatmap_data).set_index("Year")
 
