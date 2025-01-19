@@ -59,6 +59,10 @@ for year in selected_years:
         if len(category_values) > 0:
             values.append(category_values[0])  # Use the exact percentage value
 
+# Scale values to improve visibility in Sankey
+max_value = max(values)
+scaled_values = [value / max_value for value in values]  # Scale values proportionally
+
 # Create Sankey diagram
 fig = go.Figure(go.Sankey(
     node=dict(
@@ -71,8 +75,8 @@ fig = go.Figure(go.Sankey(
     link=dict(
         source=sources,
         target=targets,
-        value=values,
-        color="gray"  # Optional: You can add color differentiation here
+        value=scaled_values,  # Use scaled values here
+        color="gray"
     )
 ))
 
