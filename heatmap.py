@@ -1,12 +1,10 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import seaborn as sns
 import matplotlib.pyplot as plt
 
 # URLs של קבצי הנתונים
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
-salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary1.xlsx"
+salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx"
 rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
 fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
 
@@ -21,42 +19,56 @@ def load_data():
 
 basket_df, salary_df, rent_df, fuel_df = load_data()
 
-# חישוב אחוזי שינוי לכל קטגוריה
-basket_df["basket_growth"] = basket_df["price for basic basket"].pct_change() * 100
-rent_df["rent_growth"] = rent_df["price for month"].pct_change() * 100
-fuel_df["fuel_growth"] = fuel_df["price per liter"].pct_change() * 100
-salary_df["salary_growth"] = salary_df["salary"].pct_change() * 100
-
-# יצירת DataFrame עבור הקורלציות
-merged_df = pd.DataFrame({
-    "Year": basket_df["year"],
-    "Basket Growth": basket_df["basket_growth"],
-    "Rent Growth": rent_df["rent_growth"],
-    "Fuel Growth": fuel_df["fuel_growth"],
-    "Salary Growth": salary_df["salary_growth"]
-}).dropna()
-
-correlation_matrix = merged_df.drop(columns=["Year"]).corr()
+# חישוב כוח הקנייה
+basket_df["basket_units"] = salary_df["salary"] / basket_df["price for basic basket"]
+rent_df["rent_months"] = salary_df["salary"] / rent_df["price for month"]
+fuel_df["fuel_liters"] = salary_df["salary"] / fuel_df["price per liter"]
 
 # ממשק Streamlit
-st.title("Correlation Analysis of Economic Categories")
+st.title("Purchasing Power Analysis")
+st.sidebar.title("Select Categories to Display")
 
-# הצגת Heatmap של הקורלציות
-st.write("### Heatmap of Correlations Between Categories")
-plt.figure(figsize=(8, 6))
-sns.heatmap(correlation_matrix, annot=True, cmap="coolwarm", cbar=True)
-st.pyplot(plt)
+# בחירת קטגוריות להצגה
+categories = st.sidebar.multiselect(
+    "Select categories to display:",
+    options=["basket_units", "rent_months", "fuel_liters"],
+    default=["basket_units", "rent_months", "fuel_liters"]
+)
 
-# בחירת קטגוריות להשוואה פרטנית
-st.sidebar.title("Scatter Plot Selection")
-category_x = st.sidebar.selectbox("Select X-axis category:", correlation_matrix.columns)
-category_y = st.sidebar.selectbox("Select Y-axis category:", correlation_matrix.columns)
+# סינון נתונים לפי שנים
+start_year, end_year = st.sidebar.slider(
+    "Select Year Range:",
+    int(salary_df["year"].min()),
+    int(salary_df["year"].max()),
+    (int(salary_df["year"].min()), int(salary_df["year"].max()))
+)
 
-# הצגת Scatter Plot
-st.write(f"### Scatter Plot: {category_x} vs {category_y}")
-plt.figure(figsize=(8, 6))
-sns.scatterplot(data=merged_df, x=category_x, y=category_y, hue="Year", palette="viridis", s=100)
-plt.title(f"{category_x} vs {category_y} Over Time")
-plt.xlabel(category_x)
-plt.ylabel(category_y)
-st.pyplot(plt)
+filtered_basket = basket_df[(basket_df["year"] >= start_year) & (basket_df["year"] <= end_year)]
+filtered_rent = rent_df[(rent_df["year"] >= start_year) & (rent_df["year"] <= end_year)]
+filtered_fuel = fuel_df[(fuel_df["year"] >= start_year) & (fuel_df["year"] <= end_year)]
+
+# גרף השוואתי
+fig, ax = plt.subplots(figsize=(10, 6))
+
+if "basket_units" in categories:
+    ax.plot(filtered_basket["year"], filtered_basket["basket_units"], label="Basket Units", marker='o', color='blue')
+if "rent_months" in categories:
+    ax.plot(filtered_rent["year"], filtered_rent["rent_months"], label="Rent Months", marker='o', color='orange')
+if "fuel_liters" in categories:
+    ax.plot(filtered_fuel["year"], filtered_fuel["fuel_liters"], label="Fuel Liters", marker='o', color='green')
+
+ax.set_title("Purchasing Power Over Time")
+ax.set_xlabel("Year")
+ax.set_ylabel("Units Affordable")
+ax.legend()
+ax.grid(True)
+
+# הצגת הגרף
+st.pyplot(fig)
+
+# הסבר מילולי
+st.write("### Insights")
+st.write(
+    "This graph shows how many units of each category (basket, rent, fuel) can be purchased with the monthly salary over time. "
+    "It helps to understand which category contributes more to the erosion of purchasing power and how affordability changes over the years."
+)
