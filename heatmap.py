@@ -19,56 +19,40 @@ def load_data():
 
 basket_df, salary_df, rent_df, fuel_df = load_data()
 
-# חישוב התרומה היחסית
+# פונקציה לחישוב שיעור הגדילה
+def calculate_growth_rate(data, column):
+    growth_rate = data[column].pct_change().fillna(0) + 1
+    return growth_rate
 
-def calculate_relative_contribution(basket, rent, fuel):
-    total_cost = basket["price for basic basket"] + rent["price for month"] + fuel["price per liter"]
-    basket["relative_contribution"] = basket["price for basic basket"] / total_cost * 100
-    rent["relative_contribution"] = rent["price for month"] / total_cost * 100
-    fuel["relative_contribution"] = fuel["price per liter"] / total_cost * 100
-    return basket, rent, fuel
+# חישוב שיעורי הגדילה
+basket_df["basket_growth"] = calculate_growth_rate(basket_df, "price for basic basket")
+rent_df["rent_growth"] = calculate_growth_rate(rent_df, "price for month")
+fuel_df["fuel_growth"] = calculate_growth_rate(fuel_df, "price per liter")
 
-basket_df, rent_df, fuel_df = calculate_relative_contribution(basket_df, rent_df, fuel_df)
+# יצירת משכורות מדומות
+salary_df["simulated_basket_salary"] = salary_df["salary"].iloc[0]
+salary_df["simulated_rent_salary"] = salary_df["salary"].iloc[0]
+salary_df["simulated_fuel_salary"] = salary_df["salary"].iloc[0]
 
-# הכנת נתונים עבור גרף האזור המוערם
-def prepare_stacked_area_data(basket, rent, fuel):
-    data = pd.DataFrame({
-        "Year": basket["year"],
-        "Basket": basket["relative_contribution"],
-        "Rent": rent["relative_contribution"],
-        "Fuel": fuel["relative_contribution"]
-    })
-    return data
-
-stacked_area_data = prepare_stacked_area_data(basket_df, rent_df, fuel_df)
+for i in range(1, len(salary_df)):
+    salary_df.loc[i, "simulated_basket_salary"] = salary_df.loc[i - 1, "simulated_basket_salary"] * basket_df.loc[i, "basket_growth"]
+    salary_df.loc[i, "simulated_rent_salary"] = salary_df.loc[i - 1, "simulated_rent_salary"] * rent_df.loc[i, "rent_growth"]
+    salary_df.loc[i, "simulated_fuel_salary"] = salary_df.loc[i - 1, "simulated_fuel_salary"] * fuel_df.loc[i, "fuel_growth"]
 
 # ממשק Streamlit
-st.title("Relative Contribution to Cost of Living")
+st.title("Simulated Salaries Based on Category Growth")
 
-# בחירת טווח שנים
-start_year, end_year = st.slider(
-    "Select Year Range:",
-    int(stacked_area_data["Year"].min()),
-    int(stacked_area_data["Year"].max()),
-    (int(stacked_area_data["Year"].min()), int(stacked_area_data["Year"].max()))
-)
+# גרף השוואתי
+fig, ax = plt.subplots(figsize=(12, 6))
+ax.plot(salary_df["year"], salary_df["salary"], label="Actual Salary", marker='o', color='blue')
+ax.plot(salary_df["year"], salary_df["simulated_basket_salary"], label="Simulated Salary (Basket)", marker='o', linestyle='--', color='orange')
+ax.plot(salary_df["year"], salary_df["simulated_rent_salary"], label="Simulated Salary (Rent)", marker='o', linestyle='--', color='green')
+ax.plot(salary_df["year"], salary_df["simulated_fuel_salary"], label="Simulated Salary (Fuel)", marker='o', linestyle='--', color='red')
 
-filtered_data = stacked_area_data[(stacked_area_data["Year"] >= start_year) & (stacked_area_data["Year"] <= end_year)]
-
-# יצירת גרף אזור מוערם
-fig, ax = plt.subplots(figsize=(10, 6))
-ax.stackplot(
-    filtered_data["Year"],
-    filtered_data["Basket"],
-    filtered_data["Rent"],
-    filtered_data["Fuel"],
-    labels=["Basket", "Rent", "Fuel"],
-    alpha=0.8
-)
-ax.set_title("Stacked Area Chart: Contribution to Cost of Living")
-ax.set_xlabel("Year")
-ax.set_ylabel("Relative Contribution (%)")
-ax.legend(loc="upper left")
+ax.set_title("Simulated Salaries vs. Actual Salary", fontsize=16)
+ax.set_xlabel("Year", fontsize=12)
+ax.set_ylabel("Salary", fontsize=12)
+ax.legend()
 ax.grid(True)
 
 # הצגת הגרף
