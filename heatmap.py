@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 # URLs של קבצי הנתונים
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
-salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx"
+salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary1.xlsx"
 rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
 fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
 
