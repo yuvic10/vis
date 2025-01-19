@@ -38,17 +38,18 @@ sankey_data = pd.DataFrame({
 # Streamlit UI
 st.title("Sankey Diagram: Percentage of Salary by Categories Over Time")
 
-# Select years and categories
-selected_years = st.multiselect("Select years to display:", sorted(sankey_data["Year"].unique()), default=sankey_data["Year"].unique()[:3])
+# Sort years chronologically
+selected_years = sorted(st.multiselect("Select years to display:", sankey_data["Year"].unique(), default=sankey_data["Year"].unique()[:3]))
 selected_categories = st.multiselect("Select categories to display:", ["Basket", "Rent", "Fuel"], default=["Basket", "Rent"])
 
 # Filter data
 filtered_data = sankey_data[sankey_data["Year"].isin(selected_years)]
 
-# Normalize values to ensure the lengths are proportional
+# Normalize values to emphasize differences
 def normalize_values(values):
+    min_val = min(values)
     max_val = max(values)
-    return [value / max_val for value in values]
+    return [(value - min_val) / (max_val - min_val) + 0.1 for value in values]  # Add 0.1 to ensure visibility
 
 # Create Sankey diagram inputs
 labels = ["Salary"] + [f"{category} ({year})" for year in selected_years for category in selected_categories]
@@ -56,13 +57,13 @@ sources = []
 targets = []
 values = []
 
-for i, year in enumerate(sorted(selected_years)):
+for i, year in enumerate(selected_years):
     for category in selected_categories:
         sources.append(0)  # Salary is the source
         targets.append(labels.index(f"{category} ({year})"))
-        category_values = filtered_data.loc[filtered_data["Year"] == year, category].tolist()
+        category_values = filtered_data[category].tolist()
         normalized_values = normalize_values(category_values)
-        values.append(normalized_values[0])
+        values.append(normalized_values[selected_years.index(year)])
 
 # Create Sankey diagram
 fig = go.Figure(go.Sankey(
@@ -76,13 +77,9 @@ fig = go.Figure(go.Sankey(
     link=dict(
         source=sources,
         target=targets,
-        value=values,  # Values define the length
-        color="gray"
+        value=values
     )
 ))
 
-fig.update_layout(
-    title_text="Sankey Diagram: Salary Breakdown by Categories (Length-Based)",
-    font_size=10
-)
+fig.update_layout(title_text="Sankey Diagram: Salary Breakdown by Categories", font_size=10)
 st.plotly_chart(fig)
