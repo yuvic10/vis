@@ -22,28 +22,34 @@ basket_df, rent_df, fuel_df, salary_df = load_data()
 # Calculate percentage of salary spent on each category
 basket_df["basket_percent"] = (basket_df["price for basic basket"] / salary_df["salary"]) * 100
 rent_df["rent_percent"] = (rent_df["price for month"] / salary_df["salary"]) * 100
+fuel_df["fuel_percent"] = (fuel_df["price per liter"] / salary_df["salary"]) * 100
 
-# Streamlit UI
-st.title("Correlation Between Two Categories")
-
-# Select categories for comparison
-category_x = st.selectbox("Select Category for X-axis:", ["Basket", "Rent"])
-category_y = st.selectbox("Select Category for Y-axis:", ["Basket", "Rent"])
-
-# Map selected categories to their data
-category_data = {
+categories = {
     "Basket": basket_df["basket_percent"],
     "Rent": rent_df["rent_percent"],
+    "Fuel": fuel_df["fuel_percent"],
 }
-x_data = category_data[category_x]
-y_data = category_data[category_y]
+years = basket_df["year"]
 
-# Create a scatter plot
-fig, ax = plt.subplots(figsize=(8, 6))
-scatter = ax.scatter(x_data, y_data, c="blue", alpha=0.7, edgecolors="k")
-ax.set_title(f"Correlation Between {category_x} and {category_y}", fontsize=14)
-ax.set_xlabel(f"{category_x} (% of Salary)", fontsize=12)
-ax.set_ylabel(f"{category_y} (% of Salary)", fontsize=12)
-ax.grid(True, linestyle="--", alpha=0.6)
+# Streamlit UI
+st.title("Percentage of Salary Spent on Each Category")
 
+fig, axes = plt.subplots(1, 3, figsize=(15, 5), sharey=True)
+
+for ax, (category, data) in zip(axes, categories.items()):
+    scatter = ax.scatter(
+        years,
+        [category] * len(years),
+        s=data * 10,  # Size of the circles
+        c=data,  # Color intensity
+        cmap="Greens",
+        alpha=0.7,
+        edgecolors="k"
+    )
+    ax.set_title(category)
+    ax.set_xticks(years)
+    ax.set_yticks([])
+    ax.set_xlabel("Year")
+
+fig.colorbar(scatter, ax=axes, orientation="horizontal", label="Percentage of Salary")
 st.pyplot(fig)
