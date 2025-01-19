@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn.preprocessing import MinMaxScaler
 
 # URLs של קבצי הנתונים
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
@@ -37,8 +36,8 @@ correlation_data = pd.DataFrame({
 st.title("Bubble Chart: Correlations Between Categories")
 fig, ax = plt.subplots(figsize=(8, 8))
 
-scaler = MinMaxScaler()
-bubble_sizes = scaler.fit_transform(correlation_data.values**2) * 1000  # גודל הבועות מבוסס על ערך הקורלציה
+# חישוב גודל בועה פשוט
+bubble_sizes = (correlation_data.values**2) * 1000  # גודל הבועה מבוסס על ערך הקורלציה המוחלט
 
 for i, row in enumerate(correlation_data.columns):
     for j, col in enumerate(correlation_data.columns):
