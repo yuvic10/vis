@@ -36,27 +36,31 @@ combined_data = pd.DataFrame({
 })
 
 # Streamlit UI
-st.title("Pie Charts: Percentage of Salary Spent on Each Category")
+st.title("Interactive Pie Chart: Percentage of Salary Spent")
 
-# Select year
-selected_year = st.selectbox("Select a year:", combined_data["Year"])
+# Select years
+selected_years = st.multiselect("Select years to include:", combined_data["Year"].unique(), default=combined_data["Year"].unique())
 
-# Filter data for the selected year
-year_data = combined_data[combined_data["Year"] == selected_year].iloc[0]
-categories = ["Basket", "Rent", "Fuel"]
-values = [year_data["Basket"], year_data["Rent"], year_data["Fuel"]]
+# Select categories to display
+category_options = ["Basket", "Rent", "Fuel"]
+selected_categories = st.multiselect("Select categories to include:", category_options, default=category_options)
+
+# Filter data for the selected years and categories
+filtered_data = combined_data[combined_data["Year"].isin(selected_years)]
+
+# Calculate the average percentage for the selected years
+average_values = filtered_data[selected_categories].mean()
 
 # Create pie chart
 fig, ax = plt.subplots(figsize=(8, 8))
 ax.pie(
-    values,
-    labels=categories,
-    autopct="%1.1f%%",
+    average_values,
+    labels=selected_categories,
+    autopct='%1.1f%%',
     startangle=90,
-    colors=["skyblue", "salmon", "lightgreen"],
-    wedgeprops={"edgecolor": "black"}
+    colors=plt.cm.Set3.colors  # Using a color map for better visuals
 )
-ax.set_title(f"Percentage of Salary Spent in {selected_year}", fontsize=14)
+ax.set_title(f"Average Percentage of Salary Spent ({', '.join(map(str, selected_years))})", fontsize=14)
 
 # Display the chart
 st.pyplot(fig)
