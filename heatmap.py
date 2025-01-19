@@ -41,6 +41,15 @@ st.title("Ribbon Chart: Salary Percentage by Category Over Time")
 # Select category
 selected_category = st.selectbox("Choose a category:", ["Basket", "Rent", "Fuel"])
 
+# Allow the user to set the Y-axis range
+min_y, max_y = st.slider(
+    "Adjust the Y-axis range:",
+    min_value=0.0,
+    max_value=100.0,
+    value=(0.0, 100.0),
+    step=0.1
+)
+
 # Prepare data for selected category
 selected_data = combined_data[["Year", selected_category]].rename(columns={selected_category: "Percentage"})
 
@@ -54,9 +63,10 @@ fig = px.area(
     color_discrete_sequence=["teal"]
 )
 
+# Update the Y-axis range based on the user selection
 fig.update_layout(
     xaxis=dict(title="Year", showgrid=False),
-    yaxis=dict(title="Percentage of Salary (%)", showgrid=True),
+    yaxis=dict(title="Percentage of Salary (%)", range=[min_y, max_y], showgrid=True),
     plot_bgcolor="white",
     title=dict(x=0.5),  # Center the title
 )
