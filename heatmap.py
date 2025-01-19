@@ -1,13 +1,12 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
-import matplotlib.pyplot as plt
+import plotly.graph_objects as go
 
 # URLs of the datasets
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
 rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
 fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
-salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary1.xlsx"
+salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx"
 
 # Load the data
 @st.cache_data
@@ -28,36 +27,51 @@ basket_df["basket_percentage"] = calculate_percentage_of_salary(basket_df["price
 rent_df["rent_percentage"] = calculate_percentage_of_salary(rent_df["price for month"], salary_df["salary"])
 fuel_df["fuel_percentage"] = calculate_percentage_of_salary(fuel_df["price per liter"], salary_df["salary"])
 
-# Combine data into a single DataFrame for Stream Graph
-stream_data = pd.DataFrame({
+# Combine data for Sankey diagram
+sankey_data = pd.DataFrame({
     "Year": basket_df["year"],
     "Basket": basket_df["basket_percentage"],
     "Rent": rent_df["rent_percentage"],
     "Fuel": fuel_df["fuel_percentage"]
 })
-stream_data.set_index("Year", inplace=True)
 
 # Streamlit UI
-st.title("Stream Graph: Percentage of Salary Over Time")
+st.title("Sankey Diagram: Percentage of Salary by Categories Over Time")
 
-# Plot Stream Graph
-fig, ax = plt.subplots(figsize=(12, 8))
-categories = ["Basket", "Rent", "Fuel"]
-colors = ["#FF9999", "#66B2FF", "#99FF99"]
+# Select years and categories
+selected_years = st.multiselect("Select years to display:", sankey_data["Year"].unique(), default=sankey_data["Year"].unique()[:3])
+selected_categories = st.multiselect("Select categories to display:", ["Basket", "Rent", "Fuel"], default=["Basket", "Rent"])
 
-ax.stackplot(
-    stream_data.index,
-    [stream_data[cat] for cat in categories],
-    labels=categories,
-    colors=colors,
-    alpha=0.8
-)
+# Filter data
+filtered_data = sankey_data[sankey_data["Year"].isin(selected_years)]
 
-# Add titles and legend
-ax.set_title("Percentage of Salary by Category Over Time", fontsize=16, fontweight="bold")
-ax.set_xlabel("Year", fontsize=14)
-ax.set_ylabel("Percentage of Salary", fontsize=14)
-ax.legend(loc="upper left", fontsize=12, title="Categories")
+# Create Sankey diagram inputs
+labels = ["Salary"] + [f"{category} ({year})" for year in selected_years for category in selected_categories]
+sources = []
+targets = []
+values = []
 
-# Display chart
-st.pyplot(fig)
+for i, year in enumerate(selected_years):
+    for category in selected_categories:
+        sources.append(0)  # Salary is the source
+        targets.append(labels.index(f"{category} ({year})"))
+        values.append(filtered_data.loc[filtered_data["Year"] == year, category].values[0])
+
+# Create Sankey diagram
+fig = go.Figure(go.Sankey(
+    node=dict(
+        pad=15,
+        thickness=20,
+        line=dict(color="black", width=0.5),
+        label=labels,
+        color="lightblue"
+    ),
+    link=dict(
+        source=sources,
+        target=targets,
+        value=values
+    )
+))
+
+fig.update_layout(title_text="Sankey Diagram: Salary Breakdown by Categories", font_size=10)
+st.plotly_chart(fig)
