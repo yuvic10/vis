@@ -1,8 +1,6 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.cm import get_cmap
 
 # URLs of the datasets
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
@@ -29,65 +27,33 @@ basket_df["basket_percentage"] = calculate_percentage_of_salary(basket_df["price
 rent_df["rent_percentage"] = calculate_percentage_of_salary(rent_df["price for month"], salary_df["salary"])
 fuel_df["fuel_percentage"] = calculate_percentage_of_salary(fuel_df["price per liter"], salary_df["salary"])
 
-# Streamlit UI
-st.title("Enhanced Coxcomb Chart with Labels")
-
-# Select category
-category_options = {
+# Combine data into a single DataFrame
+combined_data = pd.DataFrame({
+    "Year": basket_df["year"],
     "Basket": basket_df["basket_percentage"],
     "Rent": rent_df["rent_percentage"],
-    "Fuel": fuel_df["fuel_percentage"],
-}
-selected_category = st.selectbox("Select a category to display:", list(category_options.keys()))
+    "Fuel": fuel_df["fuel_percentage"]
+})
 
-# Prepare data for the selected category
-selected_data = category_options[selected_category]
-years = basket_df["year"]  # Assuming all datasets have the same years
+# Streamlit UI
+st.title("Percentage of Salary Spent on Each Category Per Year")
 
-# Create polar area chart with labels and enhanced borders
-angles = np.linspace(0, 2 * np.pi, len(years), endpoint=False).tolist()
-values = selected_data.tolist()
-angles += angles[:1]  # Closing the circle
-values += values[:1]
+# Plot grouped bar chart
+fig, ax = plt.subplots(figsize=(10, 6))
+width = 0.25  # Bar width
+x = combined_data["Year"]
 
-cmap = get_cmap("viridis")  # Use a color map
-colors = [cmap(i / len(years)) for i in range(len(years))]
+ax.bar(x - width, combined_data["Basket"], width=width, label="Basket", color="skyblue")
+ax.bar(x, combined_data["Rent"], width=width, label="Rent", color="salmon")
+ax.bar(x + width, combined_data["Fuel"], width=width, label="Fuel", color="lightgreen")
 
-fig, ax = plt.subplots(figsize=(10, 10), subplot_kw={"polar": True})
-for i in range(len(years)):
-    bar = ax.bar(
-        angles[i],
-        values[i],
-        width=2 * np.pi / len(years),
-        color=colors[i],
-        edgecolor="black",
-        alpha=0.7
-    )
-    # Add percentage labels inside the bars
-    ax.text(
-        angles[i],
-        values[i] / 2,  # Position inside the bar
-        f"{values[i]:.1f}%",  # Format to one decimal place
-        ha="center",
-        va="center",
-        fontsize=10,
-        color="white",
-        fontweight="bold"
-    )
+ax.set_title("Percentage of Salary Spent on Each Category Over Time", fontsize=14)
+ax.set_xlabel("Year", fontsize=12)
+ax.set_ylabel("Percentage of Salary (%)", fontsize=12)
+ax.set_xticks(x)
+ax.set_xticklabels(x, rotation=45, fontsize=10)
+ax.legend(title="Categories", fontsize=10)
+ax.grid(axis="y", linestyle="--", alpha=0.7)
 
-ax.set_yticks([])
-ax.set_xticks(angles[:-1])
-ax.set_xticklabels(years, fontsize=10)
-ax.set_title(f"{selected_category} Percentage of Salary Over Time", va="bottom", fontsize=14, fontweight="bold")
-
-# Add legend outside the chart
-ax.legend(
-    [f"{year}" for year in years],
-    loc="upper right",
-    bbox_to_anchor=(1.3, 1.1),
-    title="Years",
-    fontsize=10
-)
-
-# Display the chart
+# Display the plot in Streamlit
 st.pyplot(fig)
