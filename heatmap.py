@@ -17,12 +17,14 @@ basket_data["price for basic basket"] = basket_data["price for basic basket"].ro
 salary_data["growth_rate"] = salary_data["salary"].pct_change().fillna(0)  # אחוז שינוי לפי השנה הקודמת
 
 # יצירת עמודה חדשה למדמה
-basket_data["simulated price"] = basket_data["price for basic basket"].iloc[0]  # ערך התחלתי - מחיר סל של 2015
+basket_data["simulated price"] = 0  # אתחול הערכים
 
-# חישוב מחירים מדומים: שימוש באחוז הגדילה המצטבר
+# חישוב מחירים מדומים: שימוש באחוז הגדילה לכל שנה בנפרד
+basket_data.loc[0, "simulated price"] = basket_data.loc[0, "price for basic basket"]  # שנה ראשונה נשארת אותו דבר
 for i in range(1, len(basket_data)):
-    cumulative_growth = 1 + salary_data["growth_rate"].iloc[:i + 1].sum()  # סכום האחוזים המצטברים עד השנה הנוכחית
-    basket_data.loc[i, "simulated price"] = basket_data.loc[0, "price for basic basket"] * cumulative_growth  # חישוב מדומה
+    prev_price = basket_data.loc[i - 1, "simulated price"]  # המחיר המדומה של השנה הקודמת
+    growth_rate = salary_data.loc[i, "growth_rate"]  # אחוז השינוי של השנה הנוכחית
+    basket_data.loc[i, "simulated price"] = prev_price * (1 + growth_rate)  # חישוב המחיר המדומה
 
 # ממשק Streamlit
 st.title("Real vs Simulated Prices Line Chart")
