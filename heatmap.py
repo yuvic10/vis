@@ -1,7 +1,6 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
-import seaborn as sns
 
 # Load data
 @st.cache_data
@@ -33,23 +32,25 @@ growth_data = pd.DataFrame({
 })
 
 # Streamlit UI
-st.title("Correlation Between Salary Growth and Categories Over Years")
+st.title("Trend Alignment Between Salary Growth and Selected Category")
 
 # Select category
 category = st.selectbox("Select category to compare with salary growth:", ["Basket Growth", "Rent Growth", "Fuel Growth"])
 
-# Calculate correlation for each year
+# Determine trend alignment
 growth_data["Same Trend"] = (growth_data["Salary Growth"] > 0) & (growth_data[category] > 0) | \
                             (growth_data["Salary Growth"] < 0) & (growth_data[category] < 0)
 
-# Plot points
-fig, ax = plt.subplots(figsize=(10, 6))
+# Plot the data
+fig, ax = plt.subplots(figsize=(12, 2))  # Narrow height
 for i, row in growth_data.iterrows():
     color = "green" if row["Same Trend"] else "red"
-    ax.scatter(row["Year"], 0, color=color, s=100)
-ax.set_yticks([])
+    ax.scatter(row["Year"], 0, color=color, s=300)  # Larger points
+ax.set_yticks([])  # Remove y-axis
+ax.set_xticks(growth_data["Year"])  # Show all years on x-axis
+ax.set_xticklabels(growth_data["Year"], rotation=45)  # Rotate year labels for clarity
 ax.set_xlabel("Year")
-ax.set_title(f"Trend Alignment Between Salary Growth and {category}")
+ax.set_title(f"Trend Alignment: Salary Growth vs {category}", fontsize=14)
 ax.axhline(0, color="black", linewidth=0.5)
-plt.grid(axis="x", linestyle="--", alpha=0.6)
+plt.tight_layout()
 st.pyplot(fig)
