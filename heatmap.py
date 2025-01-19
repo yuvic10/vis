@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
 
 # URLs of the datasets
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
@@ -27,36 +28,44 @@ basket_df["basket_percentage"] = calculate_percentage_of_salary(basket_df["price
 rent_df["rent_percentage"] = calculate_percentage_of_salary(rent_df["price for month"], salary_df["salary"])
 fuel_df["fuel_percentage"] = calculate_percentage_of_salary(fuel_df["price per liter"], salary_df["salary"])
 
-# Streamlit UI
-st.title("Interactive Donut Chart: Percentage of Salary Spent")
-
-# Select category
-category_options = {
+# Combine the data for visualization
+data = pd.DataFrame({
+    "Year": basket_df["year"],
     "Basket": basket_df["basket_percentage"],
     "Rent": rent_df["rent_percentage"],
-    "Fuel": fuel_df["fuel_percentage"],
-}
-selected_category = st.selectbox("Select a category to display:", list(category_options.keys()))
+    "Fuel": fuel_df["fuel_percentage"]
+})
 
-# Select year
-selected_year = st.selectbox("Select a year to display:", basket_df["year"].unique())
+# Streamlit UI
+st.title("Bubble Chart: Percentage of Salary Spent on Categories")
 
-# Prepare data for the selected year
-year_data = category_options[selected_category][basket_df["year"] == selected_year].values[0]
-remaining_salary = 100 - year_data
+# Select categories to display
+categories = ["Basket", "Rent", "Fuel"]
+selected_categories = st.multiselect("Select categories to display:", categories, default=categories)
 
-# Create Donut chart
-fig, ax = plt.subplots(figsize=(6, 6))
-wedges, texts, autotexts = ax.pie(
-    [year_data, remaining_salary],
-    labels=[f"{selected_category} ({year_data:.1f}%)", f"Remaining Salary ({remaining_salary:.1f}%)"],
-    autopct='%1.1f%%',
-    startangle=90,
-    colors=["#FF9999", "#66B2FF"],
-    wedgeprops=dict(width=0.3, edgecolor='w')
-)
-plt.setp(autotexts, size=10, weight="bold")
-ax.set_title(f"Salary Distribution in {selected_year}", fontsize=14, fontweight="bold")
+# Prepare data for visualization
+x_positions = np.arange(len(data["Year"]))
+bubble_scale = 30  # Scaling factor for bubble size
 
-# Display the chart
+fig, ax = plt.subplots(figsize=(12, 8))
+
+for category in selected_categories:
+    values = data[category]
+    ax.scatter(
+        x_positions, 
+        values, 
+        s=[v * bubble_scale for v in values], 
+        alpha=0.6, 
+        label=category
+    )
+
+# Add labels and legend
+ax.set_xticks(x_positions)
+ax.set_xticklabels(data["Year"])
+ax.set_xlabel("Year")
+ax.set_ylabel("Percentage of Salary")
+ax.set_title("Percentage of Salary Spent on Categories Over Time", fontsize=14)
+ax.legend()
+
+# Display chart
 st.pyplot(fig)
