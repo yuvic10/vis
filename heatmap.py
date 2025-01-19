@@ -7,7 +7,7 @@ import numpy as np
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
 rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
 fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
-salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx"
+salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary1.xlsx"
 
 # Load the data
 @st.cache_data
@@ -28,44 +28,37 @@ basket_df["basket_percentage"] = calculate_percentage_of_salary(basket_df["price
 rent_df["rent_percentage"] = calculate_percentage_of_salary(rent_df["price for month"], salary_df["salary"])
 fuel_df["fuel_percentage"] = calculate_percentage_of_salary(fuel_df["price per liter"], salary_df["salary"])
 
-# Combine the data for visualization
-data = pd.DataFrame({
-    "Year": basket_df["year"],
+# Streamlit UI
+st.title("Vertical Lines Visualization for Category Percentages")
+
+# Select category
+category_options = {
     "Basket": basket_df["basket_percentage"],
     "Rent": rent_df["rent_percentage"],
-    "Fuel": fuel_df["fuel_percentage"]
-})
+    "Fuel": fuel_df["fuel_percentage"],
+}
+selected_category = st.selectbox("Select a category to display:", list(category_options.keys()))
 
-# Streamlit UI
-st.title("Bubble Chart: Percentage of Salary Spent on Categories")
+# Prepare data for the selected category
+selected_data = category_options[selected_category]
+years = basket_df["year"]
 
-# Select categories to display
-categories = ["Basket", "Rent", "Fuel"]
-selected_categories = st.multiselect("Select categories to display:", categories, default=categories)
+# Create the vertical lines plot
+fig, ax = plt.subplots(figsize=(8, 10))
 
-# Prepare data for visualization
-x_positions = np.arange(len(data["Year"]))
-bubble_scale = 30  # Scaling factor for bubble size
+for i, value in enumerate(selected_data):
+    ax.plot([i, i], [0, value], color="teal", linewidth=2, alpha=0.7)  # Vertical line
+    ax.scatter(i, value, color="teal", s=100, zorder=5)  # Circle at the top
+    ax.text(i, value + 1, f"{value:.1f}%", ha="center", fontsize=10, color="black")  # Percentage label
 
-fig, ax = plt.subplots(figsize=(12, 8))
-
-for category in selected_categories:
-    values = data[category]
-    ax.scatter(
-        x_positions, 
-        values, 
-        s=[v * bubble_scale for v in values], 
-        alpha=0.6, 
-        label=category
-    )
-
-# Add labels and legend
-ax.set_xticks(x_positions)
-ax.set_xticklabels(data["Year"])
+# Set labels and style
+ax.set_xticks(range(len(years)))
+ax.set_xticklabels(years, fontsize=10)
+ax.set_xlim(-0.5, len(years) - 0.5)
+ax.set_ylim(0, selected_data.max() + 10)
+ax.set_title(f"{selected_category} Percentage of Salary Over Time", fontsize=14, fontweight="bold")
+ax.set_ylabel("Percentage of Salary (%)")
 ax.set_xlabel("Year")
-ax.set_ylabel("Percentage of Salary")
-ax.set_title("Percentage of Salary Spent on Categories Over Time", fontsize=14)
-ax.legend()
 
-# Display chart
+# Display the chart
 st.pyplot(fig)
