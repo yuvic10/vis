@@ -6,7 +6,7 @@ import seaborn as sns
 # Load data
 @st.cache_data
 def load_data():
-    salary_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/salary1.xlsx", engine="openpyxl")
+    salary_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx", engine="openpyxl")
     basket_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx", engine="openpyxl")
     rent_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx", engine="openpyxl", sheet_name="Sheet2")
     fuel_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx", engine="openpyxl")
@@ -33,14 +33,23 @@ growth_data = pd.DataFrame({
 })
 
 # Streamlit UI
-st.title("Correlation Between Salary Growth and Categories")
+st.title("Correlation Between Salary Growth and Categories Over Years")
 
+# Select category
 category = st.selectbox("Select category to compare with salary growth:", ["Basket Growth", "Rent Growth", "Fuel Growth"])
 
-# Scatter plot with trend line
-fig, ax = plt.subplots(figsize=(8, 6))
-sns.regplot(x="Salary Growth", y=category, data=growth_data, ax=ax, scatter_kws={"s": 50}, line_kws={"color": "red"})
-ax.set_title(f"Scatter Plot: Salary Growth vs {category}")
-ax.set_xlabel("Salary Growth (%)")
-ax.set_ylabel(f"{category} (%)")
+# Calculate correlation for each year
+growth_data["Same Trend"] = (growth_data["Salary Growth"] > 0) & (growth_data[category] > 0) | \
+                            (growth_data["Salary Growth"] < 0) & (growth_data[category] < 0)
+
+# Plot points
+fig, ax = plt.subplots(figsize=(10, 6))
+for i, row in growth_data.iterrows():
+    color = "green" if row["Same Trend"] else "red"
+    ax.scatter(row["Year"], 0, color=color, s=100)
+ax.set_yticks([])
+ax.set_xlabel("Year")
+ax.set_title(f"Trend Alignment Between Salary Growth and {category}")
+ax.axhline(0, color="black", linewidth=0.5)
+plt.grid(axis="x", linestyle="--", alpha=0.6)
 st.pyplot(fig)
