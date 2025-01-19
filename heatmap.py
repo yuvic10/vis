@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 # URLs של קבצי הנתונים
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
-salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary1.xlsx"
+salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx"
 rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
 fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
 
@@ -42,6 +42,13 @@ start_year, end_year = st.sidebar.slider(
     (int(salary_df["year"].min()), int(salary_df["year"].max()))
 )
 
+# בחירת קטגוריות להצגה
+categories = st.sidebar.multiselect(
+    "Select Categories:",
+    ["Salary Growth", "Basket Growth", "Rent Growth", "Fuel Growth"],
+    default=["Salary Growth", "Basket Growth", "Rent Growth", "Fuel Growth"]
+)
+
 # סינון נתונים לפי שנים
 filtered_salary = salary_df[(salary_df["year"] >= start_year) & (salary_df["year"] <= end_year)]
 filtered_basket = basket_df[(basket_df["year"] >= start_year) & (basket_df["year"] <= end_year)]
@@ -50,10 +57,14 @@ filtered_fuel = fuel_df[(fuel_df["year"] >= start_year) & (fuel_df["year"] <= en
 
 # גרף השוואתי
 fig, ax = plt.subplots(figsize=(10, 6))
-ax.plot(filtered_salary["year"], filtered_salary["salary_growth"], label="Salary Growth", marker='o', color='blue')
-ax.plot(filtered_basket["year"], filtered_basket["basket_growth"], label="Basket Growth", marker='o', color='orange')
-ax.plot(filtered_rent["year"], filtered_rent["rent_growth"], label="Rent Growth", marker='o', color='green')
-ax.plot(filtered_fuel["year"], filtered_fuel["fuel_growth"], label="Fuel Growth", marker='o', color='red')
+if "Salary Growth" in categories:
+    ax.plot(filtered_salary["year"], filtered_salary["salary_growth"], label="Salary Growth", marker='o', color='blue')
+if "Basket Growth" in categories:
+    ax.plot(filtered_basket["year"], filtered_basket["basket_growth"], label="Basket Growth", marker='o', color='orange')
+if "Rent Growth" in categories:
+    ax.plot(filtered_rent["year"], filtered_rent["rent_growth"], label="Rent Growth", marker='o', color='green')
+if "Fuel Growth" in categories:
+    ax.plot(filtered_fuel["year"], filtered_fuel["fuel_growth"], label="Fuel Growth", marker='o', color='red')
 ax.set_title("Growth Rate Comparison: Salaries vs Categories")
 ax.set_xlabel("Year")
 ax.set_ylabel("Growth Rate (%)")
