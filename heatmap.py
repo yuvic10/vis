@@ -33,19 +33,18 @@ percent_data = pd.DataFrame({
 })
 
 # Streamlit UI
-st.title("Percentage of Salary Spent on Categories Over Years")
+st.title("Percentage of Salary Spent on Each Category Over Time")
 
 # Create a plot
-fig, ax = plt.subplots(figsize=(10, 6))
+fig, ax = plt.subplots(figsize=(10, 8))
 categories = ["Basket", "Rent", "Fuel"]
 
 for i, category in enumerate(categories):
     ax.scatter(
         percent_data["year"], 
         [i + 1] * len(percent_data), 
-        c=percent_data[category], 
-        cmap="Greens", 
-        s=percent_data[category] * 10,  # Size of points proportional to percentage
+        s=100,  # Fixed size for all points
+        c="green", 
         label=category,
         alpha=0.7,
     )
@@ -57,7 +56,6 @@ ax.set_xticks(percent_data["year"])
 ax.set_title("Percentage of Salary Spent on Each Category Over Time", fontsize=14)
 ax.set_xlabel("Year")
 ax.set_ylabel("Category")
-plt.colorbar(ax.collections[0], ax=ax, label="Percentage of Salary")
 plt.grid(axis="x", linestyle="--", alpha=0.7)
 plt.legend()
 
