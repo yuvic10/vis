@@ -1,11 +1,12 @@
 import streamlit as st
 import pandas as pd
+import seaborn as sns
 import matplotlib.pyplot as plt
 
 # Load data
 @st.cache_data
 def load_data():
-    salary_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/salary1.xlsx", engine="openpyxl")
+    salary_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx", engine="openpyxl")
     basket_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx", engine="openpyxl")
     rent_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx", engine="openpyxl", sheet_name="Sheet2")
     fuel_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx", engine="openpyxl")
@@ -17,40 +18,35 @@ salary_df, basket_df, rent_df, fuel_df = load_data()
 def calculate_growth_rate(data, column):
     return data[column].pct_change().fillna(0) * 100
 
-salary_df["salary_growth"] = calculate_growth_rate(salary_df, "salary")
-basket_df["basket_growth"] = calculate_growth_rate(basket_df, "price for basic basket")
-rent_df["rent_growth"] = calculate_growth_rate(rent_df, "price for month")
-fuel_df["fuel_growth"] = calculate_growth_rate(fuel_df, "price per liter")
+salary_df["Salary Growth"] = calculate_growth_rate(salary_df, "salary")
+basket_df["Basket Growth"] = calculate_growth_rate(basket_df, "price for basic basket")
+rent_df["Rent Growth"] = calculate_growth_rate(rent_df, "price for month")
+fuel_df["Fuel Growth"] = calculate_growth_rate(fuel_df, "price per liter")
 
 # Combine data
 growth_data = pd.DataFrame({
     "Year": salary_df["year"],
-    "Salary Growth": salary_df["salary_growth"],
-    "Basket Growth": basket_df["basket_growth"],
-    "Rent Growth": rent_df["rent_growth"],
-    "Fuel Growth": fuel_df["fuel_growth"]
+    "Salary Growth": salary_df["Salary Growth"],
+    "Basket Growth": basket_df["Basket Growth"],
+    "Rent Growth": rent_df["Rent Growth"],
+    "Fuel Growth": fuel_df["Fuel Growth"]
 })
 
+# Calculate correlations between salary growth and each category
+correlations = growth_data.corr().loc["Salary Growth", ["Basket Growth", "Rent Growth", "Fuel Growth"]]
+
 # Streamlit UI
-st.title("Trend Alignment Between Salary Growth and Selected Category")
+st.title("Heatmap of Correlation Between Salary Growth and Categories")
 
-# Select category
-category = st.selectbox("Select category to compare with salary growth:", ["Basket Growth", "Rent Growth", "Fuel Growth"])
+# Reshape data for heatmap
+heatmap_data = pd.DataFrame({
+    "Category": correlations.index,
+    "Correlation with Salary Growth": correlations.values
+})
 
-# Determine trend alignment
-growth_data["Same Trend"] = (growth_data["Salary Growth"] > 0) & (growth_data[category] > 0) | \
-                            (growth_data["Salary Growth"] < 0) & (growth_data[category] < 0)
-
-# Plot the data
-fig, ax = plt.subplots(figsize=(12, 2))  # Narrow height
-for i, row in growth_data.iterrows():
-    color = "green" if row["Same Trend"] else "red"
-    ax.scatter(row["Year"], 0, color=color, s=300)  # Larger points
-ax.set_yticks([])  # Remove y-axis
-ax.set_xticks(growth_data["Year"])  # Show all years on x-axis
-ax.set_xticklabels(growth_data["Year"], rotation=45)  # Rotate year labels for clarity
-ax.set_xlabel("Year")
-ax.set_title(f"Trend Alignment: Salary Growth vs {category}", fontsize=14)
-ax.axhline(0, color="black", linewidth=0.5)
-plt.tight_layout()
-st.pyplot(fig)
+# Create heatmap
+plt.figure(figsize=(6, 4))
+sns.heatmap(heatmap_data.set_index("Category"), annot=True, cmap="coolwarm", fmt=".2f", cbar=True)
+plt.title("Correlation of Categories with Salary Growth")
+plt.ylabel("")
+st.pyplot(plt)
