@@ -1,64 +1,66 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# קישורים לנתוני ה-Excel
-basket_url = "https://github.com/yuvic10/vis/blob/main/basic_basket.xlsx?raw=true"
-rent_url = "https://github.com/yuvic10/vis/blob/main/rent.xlsx?raw=true"
-fuel_url = "https://github.com/yuvic10/vis/blob/main/fuel.xlsx?raw=true"
-salary_url = "https://github.com/yuvic10/vis/blob/main/salary.xlsx?raw=true"
+# URLs של קבצי ה-Excel
+basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
+salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx"
+rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
+fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
 
-# קריאת הנתונים
-basket_data = pd.read_excel(basket_url, engine="openpyxl")
-rent_data = pd.read_excel(rent_url, engine="openpyxl")
-fuel_data = pd.read_excel(fuel_url, engine="openpyxl")
-salary_data = pd.read_excel(salary_url, engine="openpyxl")
+# כותרת האפליקציה
+st.title("Real vs Simulated Prices Heatmap")
 
-# עיגול ערכים לשלוש ספרות אחרי הנקודה
-basket_data["price for basic basket"] = basket_data["price for basic basket"].round(3)
-fuel_data["price per liter"] = fuel_data["price per liter"].round(3)
+try:
+    # קריאת נתוני הסל הבסיסי
+    basket_data = pd.read_excel(basket_file_url, engine="openpyxl")
+    basket_data["price for basic basket"] = basket_data["price for basic basket"].round(3)
 
-# חישוב אחוז גדילה במשכורות
-salary_data["growth_rate"] = salary_data["salary"].pct_change() * 100
-salary_data["growth_rate"] = salary_data["growth_rate"].fillna(0).round(2)
+    # קריאת נתוני המשכורות
+    salary_data = pd.read_excel(salary_file_url, engine="openpyxl")
 
-# חישוב מחירים מדומים לכל מוצר בהתבסס על אחוז הגדילה במשכורות
-basket_data["simulated price"] = basket_data["price for basic basket"]
-rent_data["simulated price for month"] = rent_data["price for month"]
-fuel_data["simulated price per liter"] = fuel_data["price per liter"]
+    # קריאת נתוני השכירות (מתוך Sheet 2)
+    rent_data = pd.read_excel(rent_file_url, engine="openpyxl", sheet_name="Sheet2")
 
-for year in range(1, len(salary_data)):
-    growth_rate = salary_data.iloc[year]["growth_rate"] / 100 + 1
-    basket_data.loc[year, "simulated price"] = basket_data.loc[year - 1, "simulated price"] * growth_rate
-    rent_data.loc[year, "simulated price for month"] = rent_data.loc[year - 1, "simulated price for month"] * growth_rate
-    fuel_data.loc[year, "simulated price per liter"] = fuel_data.loc[year - 1, "simulated price per liter"] * growth_rate
+    # קריאת נתוני הדלק
+    fuel_data = pd.read_excel(fuel_file_url, engine="openpyxl")
+    fuel_data["price per liter"] = fuel_data["price per liter"].round(3)
 
-# הצגת כותרת האפליקציה
-st.title("Real vs Simulated Prices Comparison (2015-2024)")
+    # חישוב אחוזי השינוי במשכורות
+    salary_data["growth rate"] = salary_data["salary"].pct_change().fillna(0)
 
-# הצגת טבלאות
-st.subheader("Basic Basket Prices")
-st.dataframe(basket_data)
+    # יישום השינוי על הנתונים האחרים
+    basket_data["simulated price for basket"] = basket_data["price for basic basket"].iloc[0] * (
+        1 + salary_data["growth rate"].cumsum()
+    )
+    rent_data["simulated price for month"] = rent_data["price for month"].iloc[0] * (
+        1 + salary_data["growth rate"].cumsum()
+    )
+    fuel_data["simulated price per liter"] = fuel_data["price per liter"].iloc[0] * (
+        1 + salary_data["growth rate"].cumsum()
+    )
 
-st.subheader("Rent Prices")
-st.dataframe(rent_data)
+    # מיזוג הנתונים ליצירת Heatmap
+    heatmap_data = pd.DataFrame({
+        "Year": basket_data["year"],
+        "Real Basket Price": basket_data["price for basic basket"],
+        "Simulated Basket Price": basket_data["simulated price for basket"],
+        "Real Rent Price": rent_data["price for month"],
+        "Simulated Rent Price": rent_data["simulated price for month"],
+        "Real Fuel Price": fuel_data["price per liter"],
+        "Simulated Fuel Price": fuel_data["simulated price per liter"],
+    })
 
-st.subheader("Fuel Prices")
-st.dataframe(fuel_data)
+    # יצירת Heatmap
+    st.write("### Heatmap of Real vs Simulated Prices")
+    plt.figure(figsize=(12, 6))
+    sns.heatmap(
+        heatmap_data.set_index("Year").transpose(),
+        annot=True, fmt=".2f", cmap="coolwarm", cbar=True
+    )
+    st.pyplot(plt)
 
-st.subheader("Salaries and Growth Rates")
-st.dataframe(salary_data)
-
-# יצירת Heatmap של ההבדלים בין מחירים אמיתיים למדומים
-heatmap_data = pd.DataFrame({
-    "Year": basket_data["year"],
-    "Basic Basket Difference": basket_data["simulated price"] - basket_data["price for basic basket"],
-    "Rent Difference": rent_data["simulated price for month"] - rent_data["price for month"],
-    "Fuel Difference": fuel_data["simulated price per liter"] - fuel_data["price per liter"]
-}).set_index("Year")
-
-st.subheader("Heatmap of Real vs Simulated Prices")
-plt.figure(figsize=(10, 6))
-sns.heatmap(heatmap_data, annot=True, cmap="coolwarm", fmt=".2f")
-st.pyplot(plt)
+except Exception as e:
+    st.error(f"An error occurred: {e}")
