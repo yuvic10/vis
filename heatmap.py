@@ -4,88 +4,78 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 
-# URLs for the Excel files
-basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
-salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx"
-rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
-fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
+# Load the data
+@st.cache_data
+def load_data():
+    salary_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx")
+    rent_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx", sheet_name="Sheet2")
+    fuel_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx")
+    basket_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx")
+    return salary_df, rent_df, fuel_df, basket_df
 
-# Title of the app
+salary_df, rent_df, fuel_df, basket_df = load_data()
+
+# Calculate yearly ratios (slopes) for salaries
+def calculate_salary_ratios(df):
+    df["ratio"] = df["salary"] / df["salary"].shift(1)
+    df["ratio"].iloc[0] = 1  # Set the first year ratio to 1
+    return df
+
+salary_df = calculate_salary_ratios(salary_df)
+
+# Calculate predicted prices based on salary ratios
+def calculate_predicted_prices(real_prices, salary_ratios):
+    predicted_prices = [real_prices.iloc[0]]  # Start with the first real price
+    for i in range(1, len(real_prices)):
+        predicted = predicted_prices[-1] * salary_ratios.iloc[i]
+        predicted_prices.append(predicted)
+    return predicted_prices
+
+# Prepare data for Heatmap
+def prepare_heatmap_data(real_df, salary_df, value_column, label):
+    real_prices = real_df.set_index("year")[value_column]
+    salary_ratios = salary_df.set_index("year")["ratio"].fillna(1)
+    predicted_prices = calculate_predicted_prices(real_prices, salary_ratios)
+    differences = [pred - real for pred, real in zip(predicted_prices, real_prices)]
+    return pd.DataFrame({
+        "Year": real_prices.index,
+        f"{label} Difference": differences
+    }).set_index("Year")
+
+# Prepare data for each category
+basket_diff = prepare_heatmap_data(basket_df, salary_df, "price for basic basket", "Basket")
+rent_diff = prepare_heatmap_data(rent_df, salary_df, "price for month", "Rent")
+fuel_diff = prepare_heatmap_data(fuel_df, salary_df, "price per liter", "Fuel")
+
+# Combine all differences into a single DataFrame
+heatmap_data = pd.concat([basket_diff, rent_diff, fuel_diff], axis=1)
+
+# Streamlit UI
 st.title("Real vs Simulated Prices Heatmap")
+st.sidebar.title("Filter Options")
 
-try:
-    # Load data
-    basket_data = pd.read_excel(basket_file_url, engine="openpyxl")
-    salary_data = pd.read_excel(salary_file_url, engine="openpyxl")
-    rent_data = pd.read_excel(rent_file_url, engine="openpyxl", sheet_name="Sheet2")
-    fuel_data = pd.read_excel(fuel_file_url, engine="openpyxl")
+# User selections for categories and years
+categories = st.sidebar.multiselect(
+    "Select categories to display:",
+    heatmap_data.columns.tolist(),
+    default=heatmap_data.columns.tolist()
+)
+year_range = st.sidebar.slider(
+    "Select year range:",
+    int(heatmap_data.index.min()),
+    int(heatmap_data.index.max()),
+    (int(heatmap_data.index.min()), int(heatmap_data.index.max()))
+)
 
-    # Round values for consistency
-    basket_data["price for basic basket"] = basket_data["price for basic basket"].round(3)
-    fuel_data["price per liter"] = fuel_data["price per liter"].round(3)
+# Filter data based on user selections
+filtered_data = heatmap_data.loc[year_range[0]:year_range[1], categories]
 
-    # Calculate yearly ratios (slopes) for salaries
-    def calculate_salary_ratios(df):
-        ratios = [1]  # Start with a ratio of 1 for the first year
-        for i in range(1, len(df)):
-            ratio = df["salary"].iloc[i] / df["salary"].iloc[i - 1]
-            ratios.append(ratio)
-        return ratios
-
-    salary_ratios = calculate_salary_ratios(salary_data)
-
-    # Calculate predicted prices based on salary ratios
-    def calculate_predicted_prices(real_prices, salary_ratios):
-        predicted_prices = [real_prices.iloc[0]]  # Start with the first real price
-        for i in range(1, len(real_prices)):
-            predicted = predicted_prices[-1] * salary_ratios[i]
-            predicted_prices.append(predicted)
-        return predicted_prices
-
-    basket_data["simulated price for basket"] = calculate_predicted_prices(
-        basket_data["price for basic basket"], salary_ratios
-    )
-    rent_data["simulated price for month"] = calculate_predicted_prices(
-        rent_data["price for month"], salary_ratios
-    )
-    fuel_data["simulated price per liter"] = calculate_predicted_prices(
-        fuel_data["price per liter"], salary_ratios
-    )
-
-    # Create a heatmap-ready DataFrame
-    heatmap_data = {
-        "Year": basket_data["year"],
-        "Basket Difference": basket_data["simulated price for basket"] - basket_data["price for basic basket"],
-        "Rent Difference": rent_data["simulated price for month"] - rent_data["price for month"],
-        "Fuel Difference": fuel_data["simulated price per liter"] - fuel_data["price per liter"],
-    }
-    heatmap_df = pd.DataFrame(heatmap_data).set_index("Year")
-
-    # User selection for categories and years
-    st.sidebar.header("Filters")
-    categories = st.sidebar.multiselect(
-        "Select categories to display:", ["Basket Difference", "Rent Difference", "Fuel Difference"],
-        default=["Basket Difference", "Rent Difference", "Fuel Difference"]
-    )
-    year_range = st.sidebar.slider(
-        "Select year range:",
-        int(heatmap_df.index.min()),
-        int(heatmap_df.index.max()),
-        (int(heatmap_df.index.min()), int(heatmap_df.index.max()))
-    )
-
-    # Filter data based on user selections
-    filtered_data = heatmap_df.loc[year_range[0]:year_range[1], categories]
-
-    # Generate heatmap
-    st.write("### Heatmap of Real vs Simulated Price Differences")
-    plt.figure(figsize=(12, 6))
-    sns.heatmap(
-        filtered_data.transpose(),
-        annot=True, fmt=".3f", cmap="coolwarm", cbar=True,
-        linewidths=.5, linecolor="gray"
-    )
-    st.pyplot(plt)
-
-except Exception as e:
-    st.error(f"An error occurred: {e}")
+# Generate Heatmap
+st.write("### Heatmap of Real vs Simulated Price Differences")
+plt.figure(figsize=(12, 6))
+sns.heatmap(
+    filtered_data.transpose(),
+    annot=True, fmt=".2f", cmap="coolwarm", cbar=True,
+    linewidths=.5, linecolor="gray"
+)
+st.pyplot(plt)
