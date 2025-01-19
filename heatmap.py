@@ -19,60 +19,64 @@ def load_data():
 
 basket_df, salary_df, rent_df, fuel_df = load_data()
 
-# חישוב כוח הקנייה
-basket_df["basket_units"] = salary_df["salary"] / basket_df["price for basic basket"]
-rent_df["rent_months"] = salary_df["salary"] / rent_df["price for month"]
-fuel_df["fuel_liters"] = salary_df["salary"] / fuel_df["price per liter"]
-
 # ממשק Streamlit
-st.title("Purchasing Power Analysis Without Normalization")
-st.sidebar.title("Filters")
+st.title("Budget Allocation Analysis Over Time")
+st.sidebar.title("Budget Allocation")
 
-# בחירת קטגוריות להצגה
-categories = st.sidebar.multiselect(
-    "Select categories to display:",
-    options=["basket_units", "rent_months", "fuel_liters"],
-    default=["basket_units", "rent_months", "fuel_liters"]
-)
+# בחירת אחוזים לכל קטגוריה
+basket_percentage = st.sidebar.slider("Percentage for Basket:", 0, 100, 30)
+rent_percentage = st.sidebar.slider("Percentage for Rent:", 0, 100, 40)
+fuel_percentage = st.sidebar.slider("Percentage for Fuel:", 0, 100, 30)
 
-# בחירת שנים להצגה
-start_year, end_year = st.sidebar.slider(
-    "Select Year Range:",
-    int(salary_df["year"].min()),
-    int(salary_df["year"].max()),
-    (int(salary_df["year"].min()), int(salary_df["year"].max()))
-)
+# בדיקה שסך האחוזים הוא 100%
+if basket_percentage + rent_percentage + fuel_percentage != 100:
+    st.error("The total budget allocation must equal 100%. Please adjust the sliders.")
+else:
+    # חישוב התקציב לכל קטגוריה
+    salary_df["basket_budget"] = (salary_df["salary"] * basket_percentage) / 100
+    salary_df["rent_budget"] = (salary_df["salary"] * rent_percentage) / 100
+    salary_df["fuel_budget"] = (salary_df["salary"] * fuel_percentage) / 100
 
-# סינון נתונים לפי שנים
-filtered_salary = salary_df[(salary_df["year"] >= start_year) & (salary_df["year"] <= end_year)]
-filtered_basket = basket_df[(basket_df["year"] >= start_year) & (basket_df["year"] <= end_year)]
-filtered_rent = rent_df[(rent_df["year"] >= start_year) & (rent_df["year"] <= end_year)]
-filtered_fuel = fuel_df[(fuel_df["year"] >= start_year) & (fuel_df["year"] <= end_year)]
+    # חישוב היחידות שניתן להרשות לעצמך בכל קטגוריה
+    basket_df["basket_units"] = salary_df["basket_budget"] / basket_df["price for basic basket"]
+    rent_df["rent_months"] = salary_df["rent_budget"] / rent_df["price for month"]
+    fuel_df["fuel_liters"] = salary_df["fuel_budget"] / fuel_df["price per liter"]
 
-# הכנה לשרטוט הנתונים
-data_to_plot = pd.DataFrame({"Year": filtered_salary["year"]})
-if "basket_units" in categories:
-    data_to_plot["Basket Units"] = filtered_basket["basket_units"]
-if "rent_months" in categories:
-    data_to_plot["Rent Months"] = filtered_rent["rent_months"]
-if "fuel_liters" in categories:
-    data_to_plot["Fuel Liters"] = filtered_fuel["fuel_liters"]
+    # הכנה לשרטוט הגרף
+    data_to_plot = pd.DataFrame({
+        "Year": salary_df["year"],
+        "Basket Units": basket_df["basket_units"],
+        "Rent Months": rent_df["rent_months"],
+        "Fuel Liters": fuel_df["fuel_liters"]
+    })
 
-# גרף קווי להצגת הנתונים
-fig, ax = plt.subplots(figsize=(10, 6))
-for column in data_to_plot.columns[1:]:
-    ax.plot(data_to_plot["Year"], data_to_plot[column], marker="o", label=column)
-ax.set_title("Purchasing Power Over Time")
-ax.set_xlabel("Year")
-ax.set_ylabel("Units Affordable")
-ax.legend()
-ax.grid(True)
+    # גרף קווי להצגת יחידות
+    fig, ax = plt.subplots(figsize=(10, 6))
+    for column in data_to_plot.columns[1:]:
+        ax.plot(data_to_plot["Year"], data_to_plot[column], marker="o", label=column)
+    ax.set_title("Purchasing Power Based on Budget Allocation")
+    ax.set_xlabel("Year")
+    ax.set_ylabel("Units Affordable")
+    ax.legend()
+    ax.grid(True)
 
-# הצגת הגרף
-st.pyplot(fig)
+    # הצגת הגרף
+    st.pyplot(fig)
 
-# הצגת תובנות
-st.subheader("Insights")
-st.write("""
-This graph displays the purchasing power over time without applying normalization. Each category reflects its actual units affordable based on the given salaries and prices.
-""")
+    # גרף עוגה להצגת חלוקת התקציב
+    fig2, ax2 = plt.subplots(figsize=(6, 6))
+    ax2.pie(
+        [basket_percentage, rent_percentage, fuel_percentage],
+        labels=["Basket", "Rent", "Fuel"],
+        autopct='%1.1f%%',
+        startangle=90
+    )
+    ax2.set_title("Budget Allocation")
+    st.pyplot(fig2)
+
+    # הצגת תובנות
+    st.subheader("Insights")
+    st.write("""
+    This analysis allows you to explore how your budget allocation affects your ability to afford various categories over time. 
+    You can see if certain categories, like rent or fuel, consume more of your salary as years progress.
+    """)
