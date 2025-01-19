@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# URL של קובץ סל בסיסי ומשכורות
+# URL לנתוני סל בסיסי, משכורות, ודלק
 basket_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
 salary_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx"
 
@@ -16,11 +16,11 @@ basket_data["price for basic basket"] = basket_data["price for basic basket"].ro
 # חישוב אחוזי גדילה במשכורות
 salary_data["growth_rate"] = salary_data["salary"].pct_change().fillna(0)
 
-# אתחול עמודה למחירים מדומים עם ערך התחלתי מהשנה הראשונה
+# יצירת עמודה חדשה למדמה
 basket_data["simulated price"] = 0
-basket_data.loc[0, "simulated price"] = basket_data.loc[0, "price for basic basket"]
+basket_data.loc[0, "simulated price"] = basket_data.loc[0, "price for basic basket"]  # ערך התחלתי
 
-# חישוב מחירים מדומים
+# חישוב מחירים מדומים לפי אחוזי הגדילה
 for i in range(1, len(basket_data)):
     growth_factor = 1 + salary_data.loc[i, "growth_rate"]
     basket_data.loc[i, "simulated price"] = basket_data.loc[i - 1, "simulated price"] * growth_factor
