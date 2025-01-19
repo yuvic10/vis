@@ -36,40 +36,32 @@ streamgraph_data = pd.DataFrame({
 })
 
 # Streamlit UI
-st.title("Streamgraph: Percentage of Salary Spent on Categories Over Time")
+st.title("Streamgraph: Percentage of Salary Spent on Selected Category Over Time")
 
-# Create Streamgraph using Plotly
+# Dropdown menu to select a category
+category = st.selectbox(
+    "Select a Category:",
+    options=["Basket", "Rent", "Fuel"]
+)
+
+# Create Streamgraph for the selected category
 fig = go.Figure()
 
-# Add traces for each category
+# Add trace for the selected category
 fig.add_trace(go.Scatter(
     x=streamgraph_data["Year"], 
-    y=streamgraph_data["Basket"], 
+    y=streamgraph_data[category], 
     mode='lines',
     stackgroup='one', 
-    name='Basket'
-))
-fig.add_trace(go.Scatter(
-    x=streamgraph_data["Year"], 
-    y=streamgraph_data["Rent"], 
-    mode='lines',
-    stackgroup='one', 
-    name='Rent'
-))
-fig.add_trace(go.Scatter(
-    x=streamgraph_data["Year"], 
-    y=streamgraph_data["Fuel"], 
-    mode='lines',
-    stackgroup='one', 
-    name='Fuel'
+    name=category
 ))
 
 # Customize the layout
 fig.update_layout(
-    title="Percentage of Salary Spent on Categories Over Time",
+    title=f"Percentage of Salary Spent on {category} Over Time",
     xaxis_title="Year",
     yaxis_title="Percentage of Salary (%)",
-    legend_title="Categories",
+    legend_title="Category",
     template="plotly_white"
 )
 
