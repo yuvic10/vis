@@ -31,29 +31,29 @@ growth_data = load_data()
 # Compute correlations
 correlation_matrix = growth_data.corr()
 
-# Create Network Graph
-st.title("Network Graph of Correlations")
+# Create Correlation Wheel
+st.title("Correlation Wheel")
 
-edges = []
-weights = []
+fig, ax = plt.subplots(figsize=(8, 8))
+G = nx.Graph()
+
+# Add nodes and edges
+for col in correlation_matrix.columns:
+    G.add_node(col)
 
 for i in correlation_matrix.columns:
     for j in correlation_matrix.columns:
         if i != j:
             weight = abs(correlation_matrix.loc[i, j])
             if weight > 0.2:  # Include only strong correlations
-                edges.append((i, j))
-                weights.append(weight)
+                G.add_edge(i, j, weight=weight)
 
-# Create Graph
-G = nx.Graph()
-for edge, weight in zip(edges, weights):
-    G.add_edge(edge[0], edge[1], weight=weight)
-
-# Plot Network Graph
-pos = nx.spring_layout(G, seed=42)
-fig, ax = plt.subplots(figsize=(8, 6))
+# Circular layout
+pos = nx.circular_layout(G)
 nx.draw_networkx_nodes(G, pos, ax=ax, node_size=2000, node_color="skyblue")
-nx.draw_networkx_edges(G, pos, ax=ax, width=[d["weight"] * 5 for _, _, d in G.edges(data=True)])
+nx.draw_networkx_edges(
+    G, pos, ax=ax, width=[d["weight"] * 5 for _, _, d in G.edges(data=True)], edge_color="gray"
+)
 nx.draw_networkx_labels(G, pos, ax=ax, font_size=10, font_color="black")
 st.pyplot(fig)
+
