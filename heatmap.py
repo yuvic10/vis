@@ -28,19 +28,14 @@ fuel_df["fuel_growth"] = calculate_growth_rate(fuel_df, "price per liter")
 
 # Combine growth data into a single DataFrame
 growth_data = pd.DataFrame({
-    "year": basket_df["year"],
     "Basket Growth": basket_df["basket_growth"],
     "Rent Growth": rent_df["rent_growth"],
     "Fuel Growth": fuel_df["fuel_growth"],
 })
 
-# Calculate correlations
-correlation_matrix = growth_data.drop(columns=["year"]).corr()
-
 # Streamlit UI
-st.title("Heatmap of Correlations Between Categories")
+st.title("Scatter Plot Matrix: Category Correlations")
 
-# Plot heatmap
-plt.figure(figsize=(8, 6))
-sns.heatmap(correlation_matrix, annot=True, fmt=".2f", cmap="coolwarm", cbar=True)
-st.pyplot(plt)
+# Plot pairplot
+scatter_plot = sns.pairplot(growth_data)
+st.pyplot(scatter_plot)
