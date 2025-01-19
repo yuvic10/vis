@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
+import numpy as np
+import matplotlib.pyplot as plt
 
 # URLs of the datasets
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
@@ -27,43 +28,34 @@ basket_df["basket_percentage"] = calculate_percentage_of_salary(basket_df["price
 rent_df["rent_percentage"] = calculate_percentage_of_salary(rent_df["price for month"], salary_df["salary"])
 fuel_df["fuel_percentage"] = calculate_percentage_of_salary(fuel_df["price per liter"], salary_df["salary"])
 
-# Combine data into a single DataFrame
-streamgraph_data = pd.DataFrame({
-    "Year": basket_df["year"],
+# Streamlit UI
+st.title("Coxcomb Chart: Percentage of Salary Spent on Categories")
+
+# Select category
+category_options = {
     "Basket": basket_df["basket_percentage"],
     "Rent": rent_df["rent_percentage"],
     "Fuel": fuel_df["fuel_percentage"],
-})
+}
+selected_category = st.selectbox("Select a category to display:", list(category_options.keys()))
 
-# Streamlit UI
-st.title("Streamgraph: Percentage of Salary Spent on Selected Category Over Time")
+# Prepare data for the selected category
+selected_data = category_options[selected_category]
+years = basket_df["year"]  # Assuming all datasets have the same years
 
-# Dropdown menu to select a category
-category = st.selectbox(
-    "Select a Category:",
-    options=["Basket", "Rent", "Fuel"]
-)
+# Create polar area chart
+angles = np.linspace(0, 2 * np.pi, len(years), endpoint=False).tolist()
+values = selected_data.tolist()
+angles += angles[:1]  # Closing the circle
+values += values[:1]
 
-# Create Streamgraph for the selected category
-fig = go.Figure()
+fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={"polar": True})
+ax.fill(angles, values, color="teal", alpha=0.6)
+ax.plot(angles, values, color="black", linewidth=1.5)
+ax.set_yticks([])
+ax.set_xticks(angles[:-1])
+ax.set_xticklabels(years)
+ax.set_title(f"{selected_category} Percentage of Salary Over Time", va="bottom")
 
-# Add trace for the selected category
-fig.add_trace(go.Scatter(
-    x=streamgraph_data["Year"], 
-    y=streamgraph_data[category], 
-    mode='lines',
-    stackgroup='one', 
-    name=category
-))
-
-# Customize the layout
-fig.update_layout(
-    title=f"Percentage of Salary Spent on {category} Over Time",
-    xaxis_title="Year",
-    yaxis_title="Percentage of Salary (%)",
-    legend_title="Category",
-    template="plotly_white"
-)
-
-# Display the Streamgraph
-st.plotly_chart(fig)
+# Display the chart
+st.pyplot(fig)
