@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 
-# URL לנתוני סל בסיסי, משכורות, ודלק
+# URL לנתוני סל בסיסי ומשכורות
 basket_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
 salary_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx"
 
@@ -13,17 +13,17 @@ salary_data = pd.read_excel(salary_url, sheet_name=0)
 # עיגול מחירים ל-3 ספרות
 basket_data["price for basic basket"] = basket_data["price for basic basket"].round(3)
 
-# חישוב אחוזי גדילה במשכורות
-salary_data["growth_rate"] = salary_data["salary"].pct_change().fillna(0)
+# חישוב אחוזי גדילה במשכורות לכל שנה
+salary_data["growth_rate"] = salary_data["salary"].pct_change().fillna(0)  # אחוז שינוי לפי השנה הקודמת
 
 # יצירת עמודה חדשה למדמה
 basket_data["simulated price"] = 0
 basket_data.loc[0, "simulated price"] = basket_data.loc[0, "price for basic basket"]  # ערך התחלתי
 
-# חישוב מחירים מדומים לפי אחוזי הגדילה
+# חישוב מחירים מדומים: שנה אחרי שנה
 for i in range(1, len(basket_data)):
-    growth_factor = 1 + salary_data.loc[i, "growth_rate"]
-    basket_data.loc[i, "simulated price"] = basket_data.loc[i - 1, "simulated price"] * growth_factor
+    growth_factor = 1 + salary_data.loc[i, "growth_rate"]  # אחוז השינוי לשנה הנוכחית
+    basket_data.loc[i, "simulated price"] = basket_data.loc[i - 1, "simulated price"] * growth_factor  # חישוב מדמה
 
 # ממשק Streamlit
 st.title("Real vs Simulated Prices Line Chart")
