@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 # Load data
 @st.cache_data
 def load_data():
-    salary_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/salary.xlsx", engine="openpyxl")
+    salary_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/salary1.xlsx", engine="openpyxl")
     basket_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx", engine="openpyxl")
     rent_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx", engine="openpyxl", sheet_name="Sheet2")
     fuel_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx", engine="openpyxl")
