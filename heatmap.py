@@ -1,52 +1,49 @@
 import streamlit as st
 import pandas as pd
-import seaborn as sns
-import matplotlib.pyplot as plt
+import plotly.express as px
 
-# Load data
+# URLs of the datasets
+basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
+rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
+fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
+salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary1.xlsx"
+
+# Load the data
 @st.cache_data
 def load_data():
-    salary_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/salary1.xlsx", engine="openpyxl")
-    basket_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx", engine="openpyxl")
-    rent_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx", engine="openpyxl", sheet_name="Sheet2")
-    fuel_df = pd.read_excel("https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx", engine="openpyxl")
-    return salary_df, basket_df, rent_df, fuel_df
+    basket_df = pd.read_excel(basket_file_url, engine="openpyxl")
+    rent_df = pd.read_excel(rent_file_url, engine="openpyxl", sheet_name="Sheet2")
+    fuel_df = pd.read_excel(fuel_file_url, engine="openpyxl")
+    salary_df = pd.read_excel(salary_file_url, engine="openpyxl")
+    return basket_df, rent_df, fuel_df, salary_df
 
-salary_df, basket_df, rent_df, fuel_df = load_data()
+basket_df, rent_df, fuel_df, salary_df = load_data()
 
-# Calculate growth rates
-def calculate_growth_rate(data, column):
-    return data[column].pct_change().fillna(0) * 100
+# Calculate percentage of salary for each category
+def calculate_percentage_of_salary(category_price, salary):
+    return (category_price / salary) * 100
 
-salary_df["Salary Growth"] = calculate_growth_rate(salary_df, "salary")
-basket_df["Basket Growth"] = calculate_growth_rate(basket_df, "price for basic basket")
-rent_df["Rent Growth"] = calculate_growth_rate(rent_df, "price for month")
-fuel_df["Fuel Growth"] = calculate_growth_rate(fuel_df, "price per liter")
+basket_df["basket_percentage"] = calculate_percentage_of_salary(basket_df["price for basic basket"], salary_df["salary"])
+rent_df["rent_percentage"] = calculate_percentage_of_salary(rent_df["price for month"], salary_df["salary"])
+fuel_df["fuel_percentage"] = calculate_percentage_of_salary(fuel_df["price per liter"], salary_df["salary"])
 
-# Combine data
-growth_data = pd.DataFrame({
-    "Year": salary_df["year"],
-    "Salary Growth": salary_df["Salary Growth"],
-    "Basket Growth": basket_df["Basket Growth"],
-    "Rent Growth": rent_df["Rent Growth"],
-    "Fuel Growth": fuel_df["Fuel Growth"]
+# Combine data into a single DataFrame
+sunburst_data = pd.DataFrame({
+    "Year": basket_df["year"],
+    "Category": ["Basket"] * len(basket_df) + ["Rent"] * len(rent_df) + ["Fuel"] * len(fuel_df),
+    "Percentage": pd.concat([basket_df["basket_percentage"], rent_df["rent_percentage"], fuel_df["fuel_percentage"]])
 })
-
-# Calculate correlations between salary growth and each category
-correlations = growth_data.corr().loc["Salary Growth", ["Basket Growth", "Rent Growth", "Fuel Growth"]]
 
 # Streamlit UI
-st.title("Heatmap of Correlation Between Salary Growth and Categories")
+st.title("Sunburst Chart: Percentage of Salary Spent on Categories")
 
-# Reshape data for heatmap
-heatmap_data = pd.DataFrame({
-    "Category": correlations.index,
-    "Correlation with Salary Growth": correlations.values
-})
-
-# Create heatmap
-plt.figure(figsize=(6, 4))
-sns.heatmap(heatmap_data.set_index("Category"), annot=True, cmap="coolwarm", fmt=".2f", cbar=True)
-plt.title("Correlation of Categories with Salary Growth")
-plt.ylabel("")
-st.pyplot(plt)
+# Create and display Sunburst chart
+fig = px.sunburst(
+    sunburst_data,
+    path=["Category", "Year"],
+    values="Percentage",
+    title="Percentage of Salary Spent on Categories Over Time",
+    color="Percentage",
+    color_continuous_scale="Viridis"
+)
+st.plotly_chart(fig)
