@@ -20,7 +20,7 @@ basket_df, rent_df, fuel_df = load_data()
 
 # Calculate growth rates for each category
 def calculate_growth_rate(data, column):
-    return data[column].pct_change().fillna(0) * 100
+    return data[column].pct_change().fillna(0)
 
 basket_df["basket_growth"] = calculate_growth_rate(basket_df, "price for basic basket")
 rent_df["rent_growth"] = calculate_growth_rate(rent_df, "price for month")
@@ -35,42 +35,32 @@ growth_data = pd.DataFrame({
 })
 
 # Streamlit UI
-st.title("Correlation Between Categories Over Time")
+st.title("Correlation Representation: Yearly Changes")
 
-# Dropdowns for selecting categories
-category_x = st.selectbox("Select Category for X-Axis:", ["Basket Growth", "Rent Growth", "Fuel Growth"])
-category_y = st.selectbox("Select Category for Y-Axis:", ["Basket Growth", "Rent Growth", "Fuel Growth"])
+# Dropdown for category selection
+categories = ["Basket Growth", "Rent Growth", "Fuel Growth"]
+category_x = st.selectbox("Select first category:", categories)
+category_y = st.selectbox("Select second category:", categories)
 
-# Calculate correlation between the selected categories
-correlation = np.corrcoef(growth_data[category_x], growth_data[category_y])[0, 1]
-
-# Scatter plot
-fig, ax = plt.subplots(figsize=(8, 6))
-scatter = ax.scatter(
-    growth_data[category_x],
-    growth_data[category_y],
-    c=np.abs(growth_data[category_x] - growth_data[category_y]),  # Color based on differences
-    cmap="coolwarm",
-    s=100,  # Size of the points
-    edgecolors="k",
-    alpha=0.8,
+# Calculate correlation status for each year
+growth_data["Correlation Status"] = np.where(
+    (growth_data[category_x] > 0) & (growth_data[category_y] > 0), "Both Up",
+    np.where((growth_data[category_x] < 0) & (growth_data[category_y] < 0), "Both Down", "Mixed")
 )
 
-# Add color bar
-cbar = fig.colorbar(scatter, ax=ax, label="Difference Between Categories (%)")
-ax.set_title(f"Scatter Plot: {category_x} vs {category_y}\nCorrelation: {correlation:.2f}")
-ax.set_xlabel(category_x)
-ax.set_ylabel(category_y)
+# Map correlation status to colors
+color_map = {"Both Up": "green", "Both Down": "red", "Mixed": "orange"}
+growth_data["Color"] = growth_data["Correlation Status"].map(color_map)
 
-# Add year labels to points
-for i, year in enumerate(growth_data["year"]):
-    ax.text(
-        growth_data[category_x][i],
-        growth_data[category_y][i],
-        str(year),
-        fontsize=9,
-        ha="right",
-        va="bottom",
-    )
+# Plot the results
+fig, ax = plt.subplots(figsize=(10, 6))
+for i, row in growth_data.iterrows():
+    ax.scatter(i, 0, color=row["Color"], s=100, label=row["Correlation Status"] if row["Correlation Status"] not in ax.get_legend_handles_labels()[1] else "")
+    ax.text(i, 0, f'{row["year"]}', ha='center', va='center', fontsize=8, color='black')
 
+# Formatting
+ax.set_yticks([])
+ax.set_xticks([])
+ax.set_title(f"Correlation of {category_x} and {category_y} Over Time", fontsize=14)
+ax.legend(title="Correlation Status", loc="upper left")
 st.pyplot(fig)
