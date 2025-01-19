@@ -19,41 +19,33 @@ def load_data():
 
 basket_df, salary_df, rent_df, fuel_df = load_data()
 
-# פונקציה לחישוב שיעור הגדילה
-def calculate_growth_rate(data, column):
-    growth_rate = data[column].pct_change().fillna(0) + 1
-    return growth_rate
+# חישוב כוח הקנייה
+def calculate_purchasing_power(salary_df, basket_df, rent_df, fuel_df):
+    result = pd.DataFrame({"year": salary_df["year"]})
+    result["basket_units"] = salary_df["salary"] / basket_df["price for basic basket"]
+    result["rent_months"] = salary_df["salary"] / rent_df["price for month"]
+    result["fuel_liters"] = salary_df["salary"] / fuel_df["price per liter"]
+    return result
 
-# חישוב שיעורי הגדילה
-basket_df["basket_growth"] = calculate_growth_rate(basket_df, "price for basic basket")
-rent_df["rent_growth"] = calculate_growth_rate(rent_df, "price for month")
-fuel_df["fuel_growth"] = calculate_growth_rate(fuel_df, "price per liter")
+purchasing_power_df = calculate_purchasing_power(salary_df, basket_df, rent_df, fuel_df)
 
-# יצירת משכורות מדומות
-salary_df["simulated_basket_salary"] = salary_df["salary"].iloc[0]
-salary_df["simulated_rent_salary"] = salary_df["salary"].iloc[0]
-salary_df["simulated_fuel_salary"] = salary_df["salary"].iloc[0]
-
-for i in range(1, len(salary_df)):
-    salary_df.loc[i, "simulated_basket_salary"] = salary_df.loc[i - 1, "simulated_basket_salary"] * basket_df.loc[i, "basket_growth"]
-    salary_df.loc[i, "simulated_rent_salary"] = salary_df.loc[i - 1, "simulated_rent_salary"] * rent_df.loc[i, "rent_growth"]
-    salary_df.loc[i, "simulated_fuel_salary"] = salary_df.loc[i - 1, "simulated_fuel_salary"] * fuel_df.loc[i, "fuel_growth"]
-
-# ממשק Streamlit
-st.title("Simulated Salaries Based on Category Growth")
-
-# גרף השוואתי
-fig, ax = plt.subplots(figsize=(12, 6))
-ax.plot(salary_df["year"], salary_df["salary"], label="Actual Salary", marker='o', color='blue')
-ax.plot(salary_df["year"], salary_df["simulated_basket_salary"], label="Simulated Salary (Basket)", marker='o', linestyle='--', color='orange')
-ax.plot(salary_df["year"], salary_df["simulated_rent_salary"], label="Simulated Salary (Rent)", marker='o', linestyle='--', color='green')
-ax.plot(salary_df["year"], salary_df["simulated_fuel_salary"], label="Simulated Salary (Fuel)", marker='o', linestyle='--', color='red')
-
-ax.set_title("Simulated Salaries vs. Actual Salary", fontsize=16)
-ax.set_xlabel("Year", fontsize=12)
-ax.set_ylabel("Salary", fontsize=12)
-ax.legend()
-ax.grid(True)
+# בחירת קטגוריות להצגה
+categories = st.multiselect(
+    "Select categories to display:",
+    options=["basket_units", "rent_months", "fuel_liters"],
+    default=["basket_units", "rent_months", "fuel_liters"]
+)
 
 # הצגת הגרף
-st.pyplot(fig)
+if categories:
+    fig, ax = plt.subplots(figsize=(10, 6))
+    for category in categories:
+        ax.plot(purchasing_power_df["year"], purchasing_power_df[category], marker='o', label=category.replace("_", " ").title())
+    ax.set_title("Purchasing Power Over Time")
+    ax.set_xlabel("Year")
+    ax.set_ylabel("Units Affordable")
+    ax.legend()
+    ax.grid(True)
+    st.pyplot(fig)
+else:
+    st.warning("Please select at least one category to display.")
