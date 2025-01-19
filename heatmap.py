@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 import seaborn as sns
+import matplotlib.pyplot as plt
 
 # URLs של קבצי הנתונים
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
@@ -13,60 +13,52 @@ fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
 @st.cache_data
 def load_data():
     basket_df = pd.read_excel(basket_file_url, engine="openpyxl")
-    salary_df = pd.read_excel(salary_file_url, engine="openpyxl")
     rent_df = pd.read_excel(rent_file_url, engine="openpyxl", sheet_name="Sheet2")
     fuel_df = pd.read_excel(fuel_file_url, engine="openpyxl")
-    return basket_df, salary_df, rent_df, fuel_df
+    return basket_df, rent_df, fuel_df
 
-basket_df, salary_df, rent_df, fuel_df = load_data()
+basket_df, rent_df, fuel_df = load_data()
 
-# חישוב שיעור הגדילה לכל קטגוריה
-def calculate_growth_rate(data, column):
-    return data[column].pct_change().fillna(0) * 100
+# פונקציה לחישוב תנודתיות (סטיית תקן)
+def calculate_volatility(data, column):
+    return data[column].rolling(window=2).std()
 
-basket_df["basket_growth"] = calculate_growth_rate(basket_df, "price for basic basket")
-rent_df["rent_growth"] = calculate_growth_rate(rent_df, "price for month")
-fuel_df["fuel_growth"] = calculate_growth_rate(fuel_df, "price per liter")
+# חישוב תנודתיות עבור כל קטגוריה
+basket_volatility = calculate_volatility(basket_df, "price for basic basket")
+rent_volatility = calculate_volatility(rent_df, "price for month")
+fuel_volatility = calculate_volatility(fuel_df, "price per liter")
 
-# חישוב התרומה של כל קטגוריה לשינוי הכולל
-combined_growth = basket_df[["year", "basket_growth"]].copy()
-combined_growth["rent_growth"] = rent_df["rent_growth"]
-combined_growth["fuel_growth"] = fuel_df["fuel_growth"]
-
-combined_growth["total_growth"] = (
-    combined_growth["basket_growth"]
-    + combined_growth["rent_growth"]
-    + combined_growth["fuel_growth"]
-)
-
-combined_growth["basket_contribution"] = (combined_growth["basket_growth"] / combined_growth["total_growth"]) * 100
-combined_growth["rent_contribution"] = (combined_growth["rent_growth"] / combined_growth["total_growth"]) * 100
-combined_growth["fuel_contribution"] = (combined_growth["fuel_growth"] / combined_growth["total_growth"]) * 100
+# יצירת DataFrame לסטיית התקן
+volatility_df = pd.DataFrame({
+    "Year": basket_df["year"],
+    "Basket Volatility": basket_volatility,
+    "Rent Volatility": rent_volatility,
+    "Fuel Volatility": fuel_volatility
+}).dropna()
 
 # ממשק Streamlit
-st.title("Category Contribution to Cost of Living Over Time")
+st.title("Volatility Heatmap by Category")
 
 # בחירת שנים להצגה
 start_year, end_year = st.slider(
     "Select Year Range:",
-    int(combined_growth["year"].min()),
-    int(combined_growth["year"].max()),
-    (int(combined_growth["year"].min()), int(combined_growth["year"].max()))
+    int(volatility_df["Year"].min()),
+    int(volatility_df["Year"].max()),
+    (int(volatility_df["Year"].min()), int(volatility_df["Year"].max()))
 )
 
-filtered_data = combined_growth[
-    (combined_growth["year"] >= start_year) & (combined_growth["year"] <= end_year)
-]
+# סינון נתונים לפי שנים
+filtered_volatility = volatility_df[(volatility_df["Year"] >= start_year) & (volatility_df["Year"] <= end_year)]
 
-# Heatmap של תרומת הקטגוריות
-st.write("### Contribution Heatmap")
+# יצירת Heatmap
 plt.figure(figsize=(10, 6))
 sns.heatmap(
-    filtered_data[["basket_contribution", "rent_contribution", "fuel_contribution"]].transpose(),
-    annot=True,
-    fmt=".1f",
-    cmap="coolwarm",
-    xticklabels=filtered_data["year"],
-    yticklabels=["Basket", "Rent", "Fuel"]
+    filtered_volatility.set_index("Year").transpose(),
+    annot=True, fmt=".2f", cmap="coolwarm", cbar=True
 )
+plt.title("Volatility Heatmap by Category")
+plt.xlabel("Year")
+plt.ylabel("Category")
+
+# הצגת Heatmap
 st.pyplot(plt)
