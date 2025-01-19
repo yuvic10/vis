@@ -1,7 +1,7 @@
 import streamlit as st
 import pandas as pd
-import matplotlib.pyplot as plt
 import numpy as np
+import matplotlib.pyplot as plt
 
 # URLs of the datasets
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
@@ -28,41 +28,36 @@ basket_df["basket_percentage"] = calculate_percentage_of_salary(basket_df["price
 rent_df["rent_percentage"] = calculate_percentage_of_salary(rent_df["price for month"], salary_df["salary"])
 fuel_df["fuel_percentage"] = calculate_percentage_of_salary(fuel_df["price per liter"], salary_df["salary"])
 
-# Streamlit UI
-st.title("Artistic Shape Visualization for Category Percentages")
-
-# Select category
-category_options = {
+# Combine data into a single DataFrame for Stream Graph
+stream_data = pd.DataFrame({
+    "Year": basket_df["year"],
     "Basket": basket_df["basket_percentage"],
     "Rent": rent_df["rent_percentage"],
-    "Fuel": fuel_df["fuel_percentage"],
-}
-selected_category = st.selectbox("Select a category to display:", list(category_options.keys()))
+    "Fuel": fuel_df["fuel_percentage"]
+})
+stream_data.set_index("Year", inplace=True)
 
-# Prepare data for the selected category
-selected_data = category_options[selected_category]
-years = basket_df["year"]
+# Streamlit UI
+st.title("Stream Graph: Percentage of Salary Over Time")
 
-# Create artistic visualization
+# Plot Stream Graph
 fig, ax = plt.subplots(figsize=(12, 8))
+categories = ["Basket", "Rent", "Fuel"]
+colors = ["#FF9999", "#66B2FF", "#99FF99"]
 
-for i, value in enumerate(selected_data):
-    # Create the curve-like shape for each year
-    x = np.linspace(i - 0.4, i + 0.4, 100)
-    y = value * np.sin((x - i) * np.pi) + value / 2  # Shape resembling a curve
-    ax.fill_between(x, 0, y, color="teal", alpha=0.6)
+ax.stackplot(
+    stream_data.index,
+    [stream_data[cat] for cat in categories],
+    labels=categories,
+    colors=colors,
+    alpha=0.8
+)
 
-    # Add a label at the peak of each curve
-    ax.text(i, value + 1, f"{value:.1f}%", ha="center", fontsize=10, color="black", fontweight="bold")
+# Add titles and legend
+ax.set_title("Percentage of Salary by Category Over Time", fontsize=16, fontweight="bold")
+ax.set_xlabel("Year", fontsize=14)
+ax.set_ylabel("Percentage of Salary", fontsize=14)
+ax.legend(loc="upper left", fontsize=12, title="Categories")
 
-# Set labels and styling
-ax.set_xticks(range(len(years)))
-ax.set_xticklabels(years, fontsize=10, rotation=45)
-ax.set_yticks([])
-ax.set_xlim(-0.5, len(years) - 0.5)
-ax.set_ylim(0, max(selected_data) + 10)
-ax.set_title(f"{selected_category} Percentage of Salary Over Time", fontsize=16, fontweight="bold")
-ax.axis("off")  # Hide the axis for a cleaner look
-
-# Display the chart
+# Display chart
 st.pyplot(fig)
