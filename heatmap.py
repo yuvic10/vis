@@ -2,7 +2,6 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.cm import get_cmap
 
 # URLs of the datasets
 basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
@@ -30,7 +29,7 @@ rent_df["rent_percentage"] = calculate_percentage_of_salary(rent_df["price for m
 fuel_df["fuel_percentage"] = calculate_percentage_of_salary(fuel_df["price per liter"], salary_df["salary"])
 
 # Streamlit UI
-st.title("Enhanced Coxcomb Chart with Labels")
+st.title("Coxcomb Chart: Percentage of Salary Spent on Categories")
 
 # Select category
 category_options = {
@@ -44,50 +43,44 @@ selected_category = st.selectbox("Select a category to display:", list(category_
 selected_data = category_options[selected_category]
 years = basket_df["year"]  # Assuming all datasets have the same years
 
-# Create polar area chart with labels and enhanced borders
+# Create polar area chart
 angles = np.linspace(0, 2 * np.pi, len(years), endpoint=False).tolist()
 values = selected_data.tolist()
 angles += angles[:1]  # Closing the circle
 values += values[:1]
 
-cmap = get_cmap("viridis")  # Use a color map
-colors = [cmap(i / len(years)) for i in range(len(years))]
+# Define colors for each year
+colors = plt.cm.viridis(np.linspace(0, 1, len(years)))
 
-fig, ax = plt.subplots(figsize=(10, 10), subplot_kw={"polar": True})
-for i in range(len(years)):
-    bar = ax.bar(
-        angles[i],
-        values[i],
-        width=2 * np.pi / len(years),
-        color=colors[i],
-        edgecolor="black",
-        alpha=0.7
-    )
-    # Add percentage labels inside the bars
-    ax.text(
-        angles[i],
-        values[i] / 2,  # Position inside the bar
-        f"{values[i]:.1f}%",  # Format to one decimal place
-        ha="center",
-        va="center",
-        fontsize=10,
-        color="white",
-        fontweight="bold"
-    )
+fig, ax = plt.subplots(figsize=(8, 8), subplot_kw={"polar": True})
+bars = ax.bar(
+    angles[:-1],  # Angles for the bars
+    selected_data,  # Values for the bars
+    width=2 * np.pi / len(years),  # Width of each bar
+    color=colors,  # Assign colors for each bar
+    edgecolor="black",
+    alpha=0.8,
+)
 
+# Add text in the center
+total_percentage = selected_data.sum()
+ax.text(
+    0,
+    0,
+    f"{total_percentage:.1f}%",
+    ha="center",
+    va="center",
+    fontsize=20,
+    color="black",
+    fontweight="bold",
+)
+
+# Remove the circular frame
+ax.spines["polar"].set_visible(False)
 ax.set_yticks([])
 ax.set_xticks(angles[:-1])
-ax.set_xticklabels(years, fontsize=10)
-ax.set_title(f"{selected_category} Percentage of Salary Over Time", va="bottom", fontsize=14, fontweight="bold")
-
-# Add legend outside the chart
-ax.legend(
-    [f"{year}" for year in years],
-    loc="upper right",
-    bbox_to_anchor=(1.3, 1.1),
-    title="Years",
-    fontsize=10
-)
+ax.set_xticklabels(years)
+ax.set_title(f"{selected_category} Percentage of Salary Over Time", va="bottom", fontsize=14)
 
 # Display the chart
 st.pyplot(fig)
