@@ -35,32 +35,31 @@ growth_data = pd.DataFrame({
 })
 
 # Streamlit UI
-st.title("Correlation Representation: Yearly Changes")
+st.title("Category Correlation: Same vs Opposite Trends")
 
 # Dropdown for category selection
 categories = ["Basket Growth", "Rent Growth", "Fuel Growth"]
 category_x = st.selectbox("Select first category:", categories)
 category_y = st.selectbox("Select second category:", categories)
 
-# Calculate correlation status for each year
+# Determine correlation status
 growth_data["Correlation Status"] = np.where(
-    (growth_data[category_x] > 0) & (growth_data[category_y] > 0), "Both Up",
-    np.where((growth_data[category_x] < 0) & (growth_data[category_y] < 0), "Both Down", "Mixed")
+    (growth_data[category_x] > 0) & (growth_data[category_y] > 0) |
+    (growth_data[category_x] < 0) & (growth_data[category_y] < 0), "Same Trend", "Opposite Trend"
 )
 
 # Map correlation status to colors
-color_map = {"Both Up": "green", "Both Down": "red", "Mixed": "orange"}
+color_map = {"Same Trend": "green", "Opposite Trend": "red"}
 growth_data["Color"] = growth_data["Correlation Status"].map(color_map)
 
 # Plot the results
-fig, ax = plt.subplots(figsize=(10, 6))
+fig, ax = plt.subplots(figsize=(10, 2))
+
 for i, row in growth_data.iterrows():
-    ax.scatter(i, 0, color=row["Color"], s=100, label=row["Correlation Status"] if row["Correlation Status"] not in ax.get_legend_handles_labels()[1] else "")
-    ax.text(i, 0, f'{row["year"]}', ha='center', va='center', fontsize=8, color='black')
+    ax.scatter(i, 0, color=row["Color"], s=200)
 
 # Formatting
 ax.set_yticks([])
 ax.set_xticks([])
-ax.set_title(f"Correlation of {category_x} and {category_y} Over Time", fontsize=14)
-ax.legend(title="Correlation Status", loc="upper left")
+ax.set_title(f"Correlation of {category_x} and {category_y}: Same vs Opposite Trends", fontsize=14)
 st.pyplot(fig)
