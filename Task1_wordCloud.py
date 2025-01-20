@@ -465,7 +465,6 @@ def app3():
     # Display combined graph
     st.header("Yearly Salary vs Yearly Expenses")
     st.markdown("<p style='font-size:18px; color:white;'>Expenses = Rent + Basic Shopping Basket + Fuel</p>", unsafe_allow_html=True) 
-    # st.subheader("Expenses = Rent + Basic Shopping Basket + Fuel")
     st.pyplot(plot_combined_salary_and_expenses(merged_df))
 
 def app3B():
@@ -515,19 +514,20 @@ def app3B():
             cbar_kws={'label': 'Difference (₪)'},
             ax=ax
         )
-        ax.set_title("Yearly Salary vs Expenses Difference Heatmap")
+        ax.set_title("Yearly Salary vs Yearly Expenses")
         ax.set_xlabel("Year")
         ax.set_ylabel("")
         return fig
     
     # Streamlit UI
-    st.title("Income vs. Expenses Heatmap")
+    st.title("Income vs Expenses")
     
     # Calculate yearly differences
     merged_df = calculate_yearly_differences(salary_df, rent_df, fuel_df, basket_df)
     
     # Display heatmap
-    st.header("Yearly Difference: Salary vs Expenses")
+    st.header("Yearly Salary vs Yearly Expenses")
+    st.markdown("<p style='font-size:18px; color:white;'>Expenses = Rent + Basic Shopping Basket + Fuel</p>", unsafe_allow_html=True) 
     st.pyplot(plot_heatmap(merged_df))
 
     
