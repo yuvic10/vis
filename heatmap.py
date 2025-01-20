@@ -2,48 +2,76 @@ import streamlit as st
 import pandas as pd
 import plotly.express as px
 
-# דוגמת נתונים
-data = {
-    "Year": [2018, 2019, 2020, 2021, 2022],
-    "Category A": [30, 40, 50, 60, 70],
-    "Category B": [20, 30, 40, 30, 20],
-    "Category C": [50, 30, 10, 20, 10],
-}
-df = pd.DataFrame(data)
+# URLs of the datasets
+basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_basket.xlsx"
+rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
+fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
+salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary1.xlsx"
 
-# רשימת האפליקציות לבחירה
-apps = ["Pie Chart", "Bar Chart", "Line Chart"]
-st.sidebar.title("Navigation")
-selected_app = st.sidebar.radio("Choose an application:", apps)
+# Load the data
+@st.cache_data
+def load_data():
+    basket_df = pd.read_excel(basket_file_url, engine="openpyxl")
+    rent_df = pd.read_excel(rent_file_url, engine="openpyxl", sheet_name="Sheet2")
+    fuel_df = pd.read_excel(fuel_file_url, engine="openpyxl")
+    salary_df = pd.read_excel(salary_file_url, engine="openpyxl")
+    return basket_df, rent_df, fuel_df, salary_df
 
-# אפליקציה 1: Pie Chart
-if selected_app == "Pie Chart":
-    st.title("Pie Chart")
-    year = st.selectbox("Select Year:", df["Year"])
-    filtered_data = df[df["Year"] == year]
-    pie_data = {
-        "Category": ["Category A", "Category B", "Category C"],
-        "Values": filtered_data.iloc[0, 1:].values,
-    }
-    pie_df = pd.DataFrame(pie_data)
-    fig = px.pie(pie_df, names="Category", values="Values", title=f"Pie Chart for {year}")
-    st.plotly_chart(fig)
+basket_df, rent_df, fuel_df, salary_df = load_data()
 
-# אפליקציה 2: Bar Chart
-elif selected_app == "Bar Chart":
-    st.title("Bar Chart")
-    year = st.selectbox("Select Year:", df["Year"], key="bar_chart")
-    filtered_data = df[df["Year"] == year]
-    bar_data = {
-        "Category": ["Category A", "Category B", "Category C"],
-        "Values": filtered_data.iloc[0, 1:].values,
-    }
-    bar_df = pd.DataFrame(bar_data)
-    fig = px.bar(bar_df, x="Category", y="Values", title=f"Bar Chart for {year}")
-    st.plotly_chart(fig)
+# Adjust data: multiply fuel by 100 and basket by 4
+basket_df["price for basic basket"] *= 4  # Assuming 4 baskets per month
+fuel_df["price per liter"] *= 100        # Assuming 100 liters per month
 
-# אפליקציה 3: Line Chart
-elif selected_app == "Line Chart":
-    st.title("Line Chart")
-    fig = px.line(df, x="Year", y=["Category A", "Category B", "Category C"], title="Line Chart Over Years")
-    st.plotly_chart(fig)
+# Calculate percentage of salary for each category
+def calculate_percentage_of_salary(category_price, salary):
+    return (category_price / salary) * 100
+
+basket_df["basket_percentage"] = calculate_percentage_of_salary(basket_df["price for basic basket"], salary_df["salary"])
+rent_df["rent_percentage"] = calculate_percentage_of_salary(rent_df["price for month"], salary_df["salary"])
+fuel_df["fuel_percentage"] = calculate_percentage_of_salary(fuel_df["price per liter"], salary_df["salary"])
+
+# Combine data into a single DataFrame
+combined_data = pd.DataFrame({
+    "Year": basket_df["year"],
+    "Basket": basket_df["basket_percentage"],
+    "Rent": rent_df["rent_percentage"],
+    "Fuel": fuel_df["fuel_percentage"]
+})
+
+# Fill missing years with NaN values
+all_years = pd.DataFrame({"Year": range(combined_data["Year"].min(), combined_data["Year"].max() + 1)})
+combined_data = pd.merge(all_years, combined_data, on="Year", how="left")
+
+# Streamlit UI
+st.title("Ribbon Chart: Salary Percentage by Category Over Time")
+
+# Select category
+selected_category = st.selectbox("Choose a category:", ["Basket", "Rent", "Fuel"])
+
+# Prepare data for selected category
+selected_data = combined_data[["Year", selected_category]].rename(columns={selected_category: "Percentage"})
+
+# Calculate the min and max for a smaller Y-axis range
+min_y = selected_data["Percentage"].min() * 0.9 if not selected_data["Percentage"].isnull().all() else 0
+max_y = selected_data["Percentage"].max() * 1.1 if not selected_data["Percentage"].isnull().all() else 1
+
+# Create Ribbon Chart
+fig = px.area(
+    selected_data,
+    x="Year",
+    y="Percentage",
+    title=f"{selected_category} Percentage of Salary Over Time",
+    labels={"Percentage": "Percentage of Salary (%)", "Year": "Year"},
+    color_discrete_sequence=["teal"]
+)
+
+fig.update_layout(
+    xaxis=dict(title="Year", dtick=1, showgrid=False),  # Show all years with dtick=1
+    yaxis=dict(title="Percentage of Salary (%)", range=[min_y, max_y], showgrid=True),
+    plot_bgcolor="white",
+    title=dict(x=0.5),  # Center the title
+)
+
+# Display the chart
+st.plotly_chart(fig)
