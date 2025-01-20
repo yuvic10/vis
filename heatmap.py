@@ -7,7 +7,7 @@ basket_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/basic_bask
 rent_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/rent.xlsx"
 fuel_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/fuel.xlsx"
 salary_file_url = "https://raw.githubusercontent.com/yuvic10/vis/main/salary1.xlsx"
-sd
+
 # Load the data
 @st.cache_data
 def load_data():
