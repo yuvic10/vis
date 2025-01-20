@@ -162,10 +162,7 @@ def app1():
     st.pyplot(fig)
 
 def app1B():
-    import streamlit as st
-    import pandas as pd
     from wordcloud import WordCloud
-    import matplotlib.pyplot as plt
     
     # URL של קובץ ה-Excel ב-GitHub
     file_url = "https://raw.githubusercontent.com/inbalkat/ProjectVisu/main/all_products.xlsx"
@@ -318,7 +315,90 @@ def app2():
     selected_color = category_colors[category]
     st.pyplot(plot_category_star(data, category, selected_color))
 
+def app2B():
+    # Load data from uploaded Excel files
+    @st.cache_data
+    def load_data():
+        salary_df = pd.read_excel("https://raw.githubusercontent.com/inbalkat/ProjectVisu/main/salary.xlsx")
+        rent_df = pd.read_excel("https://raw.githubusercontent.com/inbalkat/ProjectVisu/main/rent.xlsx")
+        fuel_df = pd.read_excel("https://raw.githubusercontent.com/inbalkat/ProjectVisu/main/fuel.xlsx")
+        basket_df = pd.read_excel("https://raw.githubusercontent.com/inbalkat/ProjectVisu/main/basic_basket.xlsx")
+        return salary_df, rent_df, fuel_df, basket_df
+    
+    # Load the data
+    salary_df, rent_df, fuel_df, basket_df = load_data()
+    
+    # Prepare data for visualization
+    def prepare_data(salary_df, rent_df, fuel_df, basket_df):
+        # Align years across all datasets and calculate the monthly percentages
+        rent_df = rent_df.set_index("year")
+        fuel_df = fuel_df.set_index("year")
+        basket_df = basket_df.set_index("year")
+        salary_df = salary_df.set_index("year")
+    
+        rent_percent = rent_df["price for month"] / salary_df["salary"]
+        fuel_percent = (fuel_df["price per liter"] * 100) / salary_df["salary"]  # Fuel: 100 liters/month
+        basket_percent = (basket_df["price for basic basket"] * 4) / salary_df["salary"]  # Basket: 4 baskets/month
+    
+        # Combine into a single dataframe
+        data = pd.DataFrame({
+            "Year": salary_df.index,
+            "Rent": rent_percent,
+            "Fuel": fuel_percent,
+            "Basic Basket": basket_percent
+        })
+    
+        return data.reset_index(drop=True)
+    
+    data = prepare_data(salary_df, rent_df, fuel_df, basket_df)
+    
+    # Visualization function: Overlapping Area Plot
+    def plot_combined_area(data):
+        fig, ax = plt.subplots(figsize=(10, 6))
+        
+        # Plot each category separately
+        ax.fill_between(
+            data["Year"],
+            data["Rent"] * 100,  # Convert to percentage
+            color="lightskyblue",
+            alpha=0.7,
+            label="Rent"
+        )
+        ax.fill_between(
+            data["Year"],
+            data["Basic Basket"] * 100,  # Convert to percentage
+            color="mediumpurple",
+            alpha=0.7,
+            label="Basic Basket"
+        )
+        ax.fill_between(
+            data["Year"],
+            data["Fuel"] * 100,  # Convert to percentage
+            color="royalblue",
+            alpha=0.7,
+            label="Fuel"
+        )
+        
+        
+        # Customize the plot
+        ax.set_title("Categories as % of Salary", fontsize=16)
+        ax.set_xlabel("Year")
+        ax.set_ylabel("Percentage of Salary (%)")
+        ax.set_xticks(range(2015, 2025))
+        ax.set_ylim(0, 100)
+        ax.legend(loc="upper left")
+        ax.grid(axis="y", linestyle="--", alpha=0.7)
+    
+        return fig
+    
+    # Streamlit UI
+    st.title("Categories as % of Salary")
+    # st.header("")
+    
+    # Display the overlapping area plot
+    st.pyplot(plot_combined_area(data))
 
+    
 def app3():
     # Load data from uploaded Excel files
     @st.cache_data
@@ -387,13 +467,75 @@ def app3():
     # st.subheader("Expenses = Rent + Basic Shopping Basket + Fuel")
     st.pyplot(plot_combined_salary_and_expenses(merged_df))
 
+def app3B():
+    
+    # Load data from uploaded Excel files
+    @st.cache_data
+    def load_data():
+        salary_df = pd.read_excel("https://raw.githubusercontent.com/inbalkat/ProjectVisu/main/salary.xlsx")
+        rent_df = pd.read_excel("https://raw.githubusercontent.com/inbalkat/ProjectVisu/main/rent.xlsx")
+        fuel_df = pd.read_excel("https://raw.githubusercontent.com/inbalkat/ProjectVisu/main/fuel.xlsx")
+        basket_df = pd.read_excel("https://raw.githubusercontent.com/inbalkat/ProjectVisu/main/basic_basket.xlsx")
+        return salary_df, rent_df, fuel_df, basket_df
+    
+    # Load the data
+    salary_df, rent_df, fuel_df, basket_df = load_data()
+    
+    # Update calculations to yearly
+    def calculate_yearly_differences(salary_df, rent_df, fuel_df, basket_df):
+        # Update basket to 4 per month * 12 months = 48 baskets per year
+        basket_df["yearly_expenses"] = basket_df["price for basic basket"] * 48
+        # Fuel: Assume 100 liters per month * 12 months = 1200 liters per year
+        fuel_df["yearly_expenses"] = fuel_df["price per liter"] * 1200
+        # Rent: Already yearly
+        rent_df["yearly_expenses"] = rent_df["price for month"] * 12
+        # Combine all yearly expenses
+        salary_df["yearly_salary"] = salary_df["salary"] * 12
+        merged_df = salary_df[["year", "yearly_salary"]].copy()
+        merged_df["yearly_expenses"] = (
+            basket_df["yearly_expenses"].values
+            + fuel_df["yearly_expenses"].values
+            + rent_df["yearly_expenses"].values
+        )
+        merged_df["difference"] = merged_df["yearly_salary"] - merged_df["yearly_expenses"]
+        return merged_df
+    
+    # Visualization: Heatmap of yearly differences
+    def plot_heatmap(merged_df):
+        fig, ax = plt.subplots(figsize=(10, 6))
+        heatmap_data = merged_df.set_index("year")[["difference"]].T  # Transform for heatmap
+        sns.heatmap(
+            heatmap_data,
+            annot=True,
+            fmt=".0f",
+            cmap="coolwarm",
+            linewidths=0.5,
+            linecolor="white",
+            cbar_kws={'label': 'Difference (₪)'},
+            ax=ax
+        )
+        ax.set_title("Yearly Salary vs Expenses Difference Heatmap")
+        ax.set_xlabel("Year")
+        ax.set_ylabel("")
+        return fig
+    
+    # Streamlit UI
+    st.title("Income vs. Expenses Heatmap")
+    
+    # Calculate yearly differences
+    merged_df = calculate_yearly_differences(salary_df, rent_df, fuel_df, basket_df)
+    
+    # Display heatmap
+    st.header("Yearly Difference: Salary vs Expenses")
+    st.pyplot(plot_heatmap(merged_df))
 
+    
 # Main navigation
 def main():
     st.sidebar.title("Navigation")
     app_choice = st.sidebar.radio(
         "Choose an app:", 
-        ["Supermarket Product Prices Over Time", "Supermarket Product Prices Over Time (not selected)", "Categories as % of Salary", "Income vs Expenses"]
+        ["Supermarket Product Prices Over Time", "Supermarket Product Prices Over Time (not selected)", "Categories as % of Salary", "Categories as % of Salary (not selected)", "Income vs Expenses", "Income vs Expenses (not selected)"]
     )
 
     if app_choice == "Supermarket Product Prices Over Time":
@@ -402,8 +544,12 @@ def main():
         app1B()
     elif app_choice == "Categories as % of Salary":
         app2()
+    elif app_choice == "Categories as % of Salary (not selected)":
+        app2B()
     elif app_choice == "Income vs Expenses":
         app3()
+    elif app_choice == "Income vs Expenses (not selected)":
+        app3B()
 
 if __name__ == "__main__":
     main()
